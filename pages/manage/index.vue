@@ -10,12 +10,50 @@
       style="max-width: 300px"
       class="mr-4"
     />
-    <v-btn to="/manage/add" tag="NuxtLink" color="primary">
+    <v-btn
+      class="mt-n1 mr-2"
+      :color="showNearlyDepleted ? 'warning' : 'default'"
+      :variant="showNearlyDepleted ? 'elevated' : 'flat'"
+      toggle
+      @click="toggleNearlyDepleted"
+    >
+      ใกล้หมด {{ nearlyDepletedCount }} รายการ
+    </v-btn>
+    <v-btn
+      class="mt-n1 mr-2"
+      :color="showDepleted ? 'error' : 'default'"
+      :variant="showDepleted ? 'elevated' : 'flat'"
+      toggle
+      @click="toggleDepleted"
+    >
+      หมดแล้ว {{ depletedCount }} รายการ
+    </v-btn>
+    <v-btn to="/manage/add" tag="NuxtLink" color="primary" class="mt-n1">
       เพิ่มวัสดุใหม่
     </v-btn>
   </v-app-bar>
-  <v-main class="d-flex align-center justify-center">
-    <v-container>
+  <v-row class="ma-auto">
+    <v-col cols="3" class="pa-4">
+      <v-card class="pa-4" style="position: sticky;top: 10%">
+        หมวดหมู่
+        <div class="mb-2 d-flex flex-column">
+          <v-btn
+            v-for="(items, category) in itemsByCategory"
+            :key="category"
+            class="mb-2"
+            :color="selectedCategory === category ? 'primary' : 'default'"
+            @click="toggleCategory(category)"
+            :variant="selectedCategory === category ? 'elevated' : 'outlined'"
+            block
+            toggle
+          >
+            {{ category || 'ไม่ระบุหมวดหมู่' }}
+          </v-btn>
+        </div>
+        <v-btn v-if="selectedCategory" class="mt-4" color="secondary" @click="clearSelection" block>แสดงทั้งหมด</v-btn>
+      </v-card>
+    </v-col>
+    <v-col cols="9" class="pa-4">
       <v-row v-if="loading">
         <v-col cols="12" class="text-center">
           <v-progress-circular indeterminate color="primary" />
@@ -27,7 +65,7 @@
         </v-col>
       </v-row>
       <v-row v-else>
-        <v-col cols="12" v-for="(items, category) in filteredItemsByCategory" :key="category">
+        <v-col cols="12" v-for="(items, category) in filteredAndSelectedItemsByCategory" :key="category">
           <v-card class="mb-6" outlined>
             <v-card-title>{{ category }}</v-card-title>
             <v-card-text>
@@ -40,8 +78,8 @@
           </v-card>
         </v-col>
       </v-row>
-    </v-container>
-  </v-main>
+    </v-col>
+  </v-row>
 </template>
 
 <script setup>
@@ -52,6 +90,31 @@ const itemsByCategory = ref({})
 const loading = ref(true)
 const error = ref(null)
 const search = ref('')
+const selectedCategory = ref(null)
+const showNearlyDepleted = ref(false)
+const showDepleted = ref(false)
+
+const toggleCategory = (category) => {
+  if (selectedCategory.value === category) {
+    selectedCategory.value = null
+  } else {
+    selectedCategory.value = category
+  }
+}
+
+const clearSelection = () => {
+  selectedCategory.value = null
+}
+
+const toggleNearlyDepleted = () => {
+  showNearlyDepleted.value = !showNearlyDepleted.value
+  if (showNearlyDepleted.value) showDepleted.value = false
+}
+
+const toggleDepleted = () => {
+  showDepleted.value = !showDepleted.value
+  if (showDepleted.value) showNearlyDepleted.value = false
+}
 
 const fetchItems = async () => {
   loading.value = true
@@ -87,6 +150,46 @@ const filteredItemsByCategory = computed(() => {
     if (filtered.length) result[category] = filtered
   }
   return result
+})
+
+const nearlyDepletedCount = computed(() => {
+  let count = 0
+  for (const items of Object.values(filteredItemsByCategory.value)) {
+    count += items.filter(item => item.stockqnt <= item.minqnt && item.stockqnt > 0).length
+  }
+  return count
+})
+
+const depletedCount = computed(() => {
+  let count = 0
+  for (const items of Object.values(filteredItemsByCategory.value)) {
+    count += items.filter(item => item.stockqnt === 0).length
+  }
+  return count
+})
+
+const filteredAndSelectedItemsByCategory = computed(() => {
+  let base = filteredItemsByCategory.value
+  if (selectedCategory.value) {
+    base = { [selectedCategory.value]: base[selectedCategory.value] || [] }
+  }
+  // Filter for nearly depleted or depleted
+  if (showNearlyDepleted.value) {
+    const filtered = {}
+    for (const [category, items] of Object.entries(base)) {
+      const filteredItems = items.filter(item => item.stockqnt <= item.minqnt && item.stockqnt > 0)
+      if (filteredItems.length) filtered[category] = filteredItems
+    }
+    base = filtered
+  } else if (showDepleted.value) {
+    const filtered = {}
+    for (const [category, items] of Object.entries(base)) {
+      const filteredItems = items.filter(item => item.stockqnt === 0)
+      if (filteredItems.length) filtered[category] = filteredItems
+    }
+    base = filtered
+  }
+  return base
 })
 
 onMounted(fetchItems)

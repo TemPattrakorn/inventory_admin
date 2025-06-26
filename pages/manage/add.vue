@@ -18,17 +18,25 @@
             :rules="[v => !!v || 'กรุณากรอกหน่วยนับ']"
             required
           />
-          <v-text-field
-            v-model.number="item.stockqnt"
+          <v-number-input
+            v-model="item.stockqnt"
+            :min="0"
+            :reverse="false"
+            control-variant="default"
             label="จำนวนคงเหลือ"
-            type="number"
+            :hide-input="false"
+            :inset="false"
             :rules="[v => v !== null && v !== '' && !isNaN(v) || 'กรุณากรอกจำนวนคงเหลือ']"
             required
           />
-          <v-text-field
-            v-model.number="item.minqnt"
+          <v-number-input
+            v-model="item.minqnt"
+            :min="0"
+            :reverse="false"
+            control-variant="default"
             label="จำนวนขั้นต่ำ"
-            type="number"
+            :hide-input="false"
+            :inset="false"
             :rules="[v => v !== null && v !== '' && !isNaN(v) || 'กรุณากรอกจำนวนขั้นต่ำ']"
             required
           />
