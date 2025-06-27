@@ -41,16 +41,16 @@
             v-for="(items, category) in itemsByCategory"
             :key="category"
             class="mb-2"
-            :color="selectedCategory === category ? 'primary' : 'default'"
+            :color="selectedCategories.includes(category) ? 'primary' : 'default'"
             @click="toggleCategory(category)"
-            :variant="selectedCategory === category ? 'elevated' : 'outlined'"
+            :variant="selectedCategories.includes(category) ? 'elevated' : 'outlined'"
             block
             toggle
           >
             {{ category || 'ไม่ระบุหมวดหมู่' }}
           </v-btn>
         </div>
-        <v-btn v-if="selectedCategory" class="mt-4" color="secondary" @click="clearSelection" block>แสดงทั้งหมด</v-btn>
+        <v-btn v-if="selectedCategories.length" class="mt-4" color="error" @click="clearSelection" block>ล้างการเลือก</v-btn>
       </v-card>
     </v-col>
     <v-col cols="9" class="pa-4">
@@ -71,7 +71,7 @@
             <v-card-text>
               <v-row>
                 <v-col cols="12" v-for="item in items" :key="item.id">
-                  <itemCard :name="item.name" :stockqnt="item.stockqnt" :minqnt="item.minqnt" />
+                  <itemCard :name="item.name" :stockqnt="item.stockqnt" :minqnt="item.minqnt" :imageUrl="item.imageUrl" />
                 </v-col>
               </v-row>
             </v-card-text>
@@ -84,26 +84,31 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useRuntimeConfig } from '#app'
 import itemCard from '~/components/itemCard.vue'
 
+const config = useRuntimeConfig()
+const API_BASE_URL = config.public.apiUrl
+const API_BEARER_TOKEN = config.public.apiToken
 const itemsByCategory = ref({})
 const loading = ref(true)
 const error = ref(null)
 const search = ref('')
-const selectedCategory = ref(null)
+const selectedCategories = ref([])
 const showNearlyDepleted = ref(false)
 const showDepleted = ref(false)
 
 const toggleCategory = (category) => {
-  if (selectedCategory.value === category) {
-    selectedCategory.value = null
+  const idx = selectedCategories.value.indexOf(category)
+  if (idx > -1) {
+    selectedCategories.value.splice(idx, 1)
   } else {
-    selectedCategory.value = category
+    selectedCategories.value.push(category)
   }
 }
 
 const clearSelection = () => {
-  selectedCategory.value = null
+  selectedCategories.value = []
 }
 
 const toggleNearlyDepleted = () => {
@@ -119,9 +124,9 @@ const toggleDepleted = () => {
 const fetchItems = async () => {
   loading.value = true
   try {
-    const res = await fetch('http://localhost:1337/api/items', {
+    const res = await fetch(`${API_BASE_URL}/api/items?populate=*`, {
       headers: {
-        Authorization: 'Bearer 47e548113e5c35750c07c03b94b65e5064bd766eb8d81fec7aa84398b469b6ed4d922c112ad5986420c6730cf0468facf4c07c520327982aa07524b80e88bd85b04bfdbc8d98f34086a31d0f4b8aae00b494c0f2d07017193bb2c6824a4cdda2f5c03bbb7da4bd0017778154f68fc526e483adab7da7c0e25e9553773a540e46'
+        Authorization: `Bearer ${API_BEARER_TOKEN}`
       }
     })
     const data = await res.json()
@@ -130,7 +135,20 @@ const fetchItems = async () => {
     for (const item of data.data) {
       const key = item.category ? item.category.replace(/\s+/g, '') : ''
       if (!categorized[key]) categorized[key] = []
-      categorized[key].push(item)
+      // Extract image URL if present
+      let imageUrl = null
+      if (item.imgpath && Array.isArray(item.imgpath) && item.imgpath.length > 0) {
+        // Use the first image, prefer thumbnail, then small, then original
+        const img = item.imgpath[0]
+        if (img.formats && img.formats.thumbnail && img.formats.thumbnail.url) {
+          imageUrl = `${API_BASE_URL}` + img.formats.thumbnail.url
+        } else if (img.formats && img.formats.small && img.formats.small.url) {
+          imageUrl = `${API_BASE_URL}` + img.formats.small.url
+        } else if (img.url) {
+          imageUrl = `${API_BASE_URL}` + img.url
+        }
+      }
+      categorized[key].push({ ...item, imageUrl })
     }
     itemsByCategory.value = categorized
   } catch (e) {
@@ -170,8 +188,12 @@ const depletedCount = computed(() => {
 
 const filteredAndSelectedItemsByCategory = computed(() => {
   let base = filteredItemsByCategory.value
-  if (selectedCategory.value) {
-    base = { [selectedCategory.value]: base[selectedCategory.value] || [] }
+  if (selectedCategories.value.length) {
+    const filtered = {}
+    for (const cat of selectedCategories.value) {
+      if (base[cat]) filtered[cat] = base[cat]
+    }
+    base = filtered
   }
   // Filter for nearly depleted or depleted
   if (showNearlyDepleted.value) {

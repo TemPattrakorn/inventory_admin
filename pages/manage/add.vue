@@ -72,8 +72,12 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useRuntimeConfig } from '#app'
 
 const router = useRouter()
+const config = useRuntimeConfig()
+const API_BASE_URL = config.public.apiUrl
+const API_BEARER_TOKEN = config.public.apiToken
 const valid = ref(false)
 const form = ref(null)
 const loading = ref(false)
@@ -94,11 +98,11 @@ const onSubmit = async () => {
   if (!form.value.validate()) return
   loading.value = true
   try {
-    const res = await fetch('http://localhost:1337/api/items', {
+    const res = await fetch(`${API_BASE_URL}/api/items`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: 'Bearer 47e548113e5c35750c07c03b94b65e5064bd766eb8d81fec7aa84398b469b6ed4d922c112ad5986420c6730cf0468facf4c07c520327982aa07524b80e88bd85b04bfdbc8d98f34086a31d0f4b8aae00b494c0f2d07017193bb2c6824a4cdda2f5c03bbb7da4bd0017778154f68fc526e483adab7da7c0e25e9553773a540e46'
+        Authorization: `Bearer ${API_BEARER_TOKEN}`
       },
       body: JSON.stringify({
         data: {

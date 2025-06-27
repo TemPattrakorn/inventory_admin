@@ -1,13 +1,17 @@
 <template>
   <v-card class="ma-2" outlined>
     <v-row align="center" no-gutters>
-      <v-col cols="11">
+      <v-col cols="2">
         <v-img v-if="imageUrl" :src="imageUrl" height="180" cover class="mb-2" />
+      </v-col>
+      <v-col cols="5">
         <v-card-title>{{ name }}</v-card-title>
-        <v-card-text>
-          <div>จำนวนคงเหลือ: {{ stockqnt }}</div>
-          <div>ขั้นต่ำ: {{ minqnt }}</div>
-        </v-card-text>
+      </v-col>
+      <v-col cols="2">
+        <div>จำนวนขั้นต่ำ: {{ minqnt }}</div>
+      </v-col>
+      <v-col cols="2">
+        <div>จำนวนคงเหลือ: {{ stockqnt }}</div>
       </v-col>
       <v-col cols="1" class="d-flex justify-end">
         <v-menu location="right" offset-x>
