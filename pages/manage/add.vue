@@ -1,5 +1,8 @@
 <template>
     <v-app-bar>
+        <v-btn icon @click="onCancel">
+          <v-icon>mdi-arrow-left</v-icon>
+        </v-btn>
         <v-app-bar-title>เพิ่มวัสดุใหม่</v-app-bar-title>
     </v-app-bar>
   <v-container class="d-flex justify-center align-center" style="min-height: 80vh;">
@@ -18,15 +21,10 @@
             :rules="[v => !!v || 'กรุณากรอกหน่วยนับ']"
             required
           />
-          <v-number-input
-            v-model="item.stockqnt"
-            :min="0"
-            :reverse="false"
-            control-variant="default"
-            label="จำนวนคงเหลือ"
-            :hide-input="false"
-            :inset="false"
-            :rules="[v => v !== null && v !== '' && !isNaN(v) || 'กรุณากรอกจำนวนคงเหลือ']"
+          <v-text-field
+            v-model="item.category"
+            label="หมวดหมู่"
+            :rules="[v => !!v || 'กรุณากรอกหมวดหมู่']"
             required
           />
           <v-number-input
@@ -40,10 +38,15 @@
             :rules="[v => v !== null && v !== '' && !isNaN(v) || 'กรุณากรอกจำนวนขั้นต่ำ']"
             required
           />
-          <v-text-field
-            v-model="item.category"
-            label="หมวดหมู่"
-            :rules="[v => !!v || 'กรุณากรอกหมวดหมู่']"
+          <v-number-input
+            v-model="item.stockqnt"
+            :min="0"
+            :reverse="false"
+            control-variant="default"
+            label="จำนวนคงเหลือ"
+            :hide-input="false"
+            :inset="false"
+            :rules="[v => v !== null && v !== '' && !isNaN(v) || 'กรุณากรอกจำนวนคงเหลือ']"
             required
           />
           <v-textarea
@@ -52,6 +55,14 @@
             maxlength="255"
             counter
             single-line
+          />
+          <v-file-input
+            v-model="file"
+            label="อัปโหลดรูปภาพ"
+            accept="image/*"
+            prepend-icon="mdi-paperclip"
+            show-size
+            clearable
           />
           <v-alert v-if="error" type="error" class="mt-2">{{ error }}</v-alert>
           <v-alert v-if="success" type="success" class="mt-2">{{ success }}</v-alert>
@@ -91,6 +102,7 @@ const item = ref({
   category: '',
   description: ''
 })
+const file = ref(null)
 
 const onSubmit = async () => {
   error.value = ''
@@ -116,6 +128,26 @@ const onSubmit = async () => {
       })
     })
     if (!res.ok) throw new Error('ไม่สามารถเพิ่มวัสดุใหม่ได้')
+    const data = await res.json()
+    const newItemId = data.data.id
+
+    if (file.value) {
+      const formData = new FormData()
+      formData.append('files', file.value)
+      formData.append('ref', 'api::item.item')
+      formData.append('refId', newItemId)
+      formData.append('field', 'imgpath')
+
+      const uploadRes = await fetch(`${API_BASE_URL}/api/upload`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${API_BEARER_TOKEN}`
+        },
+        body: formData
+      })
+      if (!uploadRes.ok) throw new Error('อัปโหลดไฟล์ไม่สำเร็จ')
+    }
+
     success.value = 'เพิ่มวัสดุใหม่สำเร็จ!'
     setTimeout(() => router.push('/manage'), 1000)
   } catch (e) {

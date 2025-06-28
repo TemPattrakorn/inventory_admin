@@ -28,17 +28,24 @@
     >
       หมดแล้ว {{ depletedCount }} รายการ
     </v-btn>
-    <v-btn to="/manage/add" tag="NuxtLink" color="primary" class="mt-n1">
+    <v-btn 
+    variant="tonal"
+    to="/manage/add" 
+    tag="NuxtLink" 
+    color="primary" 
+    class="mt-n1">
       เพิ่มวัสดุใหม่
     </v-btn>
   </v-app-bar>
   <v-row class="ma-auto">
+
+    <!-- หมวดหมู่ -->
     <v-col cols="3" class="pa-4">
-      <v-card class="pa-4" style="position: sticky;top: 10%">
+      <v-card class="pa-4" style="position: sticky; top: 64px; z-index: 1;">
         หมวดหมู่
         <div class="mb-2 d-flex flex-column">
           <v-btn
-            v-for="(items, category) in itemsByCategory"
+            v-for="category in sortedCategoryKeys"
             :key="category"
             class="mb-2"
             :color="selectedCategories.includes(category) ? 'primary' : 'default'"
@@ -64,20 +71,26 @@
           <v-alert type="error">{{ error.message || error }}</v-alert>
         </v-col>
       </v-row>
+
+      <!-- category card -->
       <v-row v-else>
-        <v-col cols="12" v-for="(items, category) in filteredAndSelectedItemsByCategory" :key="category">
+        <v-col cols="12" v-for="([category, items], idx) in sortedCategoryEntries" :key="category">
           <v-card class="mb-6" outlined>
             <v-card-title>{{ category }}</v-card-title>
+
+            <!-- item card -->
             <v-card-text>
               <v-row>
                 <v-col cols="12" v-for="item in items" :key="item.id">
-                  <itemCard :name="item.name" :stockqnt="item.stockqnt" :minqnt="item.minqnt" :imageUrl="item.imageUrl" />
+                  <itemCard :documentId="item.documentId" :name="item.name" :stockqnt="item.stockqnt" :minqnt="item.minqnt" :imageUrl="item.imageUrl" @deleted="fetchItems" @updated="fetchItems" />
                 </v-col>
               </v-row>
             </v-card-text>
+
           </v-card>
         </v-col>
       </v-row>
+      
     </v-col>
   </v-row>
 </template>
@@ -212,6 +225,15 @@ const filteredAndSelectedItemsByCategory = computed(() => {
     base = filtered
   }
   return base
+})
+
+const sortedCategoryEntries = computed(() => {
+  return Object.entries(filteredAndSelectedItemsByCategory.value)
+    .sort(([a], [b]) => a.localeCompare(b, 'th'))
+})
+
+const sortedCategoryKeys = computed(() => {
+  return Object.keys(itemsByCategory.value).sort((a, b) => a.localeCompare(b, 'th'))
 })
 
 onMounted(fetchItems)
