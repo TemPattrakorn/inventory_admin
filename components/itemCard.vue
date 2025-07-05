@@ -3,10 +3,10 @@
 
     <!-- image name minqnt stockqnt kebab -->
     <v-row align="center" no-gutters>
-      <v-col cols="2">
-        <v-img v-if="imageUrl" :src="imageUrl" height="180" cover class="mb-2" />
+      <v-col cols="1">
+        <v-img v-if="imageUrl" :src="imageUrl" aspect-ratio="1" height="90" contain class="mb-2" />
       </v-col>
-      <v-col cols="5">
+      <v-col cols="6">
         <v-card-title>{{ name }}</v-card-title>
       </v-col>
       <v-col cols="2">
@@ -26,13 +26,13 @@
           </template>
           <v-list>
             <v-list-item>
-              <v-btn variant="text" block @click="showAddDialog = true">Add item quantity</v-btn>
+              <v-btn variant="text" block @click="showAddDialog = true">เพิ่มจำนวนวัสดุ</v-btn>
             </v-list-item>
             <v-list-item>
-              <v-btn variant="text" block @click="navigateToEdit">Edit item</v-btn>
+              <v-btn variant="text" block @click="navigateToEdit">แก้ไขข้อมูลวัสดุ</v-btn>
             </v-list-item>
             <v-list-item>
-              <v-btn variant="text" block color="error" @click="showDeleteDialog = true">Delete item</v-btn>
+              <v-btn variant="text" block color="error" @click="showDeleteDialog = true">ลบรายการ</v-btn>
             </v-list-item>
           </v-list>
         </v-menu>
@@ -47,7 +47,7 @@
         <v-card-text>
           <v-row align="center">
             <v-col cols="3">
-              <v-img v-if="imageUrl" :src="imageUrl" height="80" cover />
+              <v-img v-if="imageUrl" :src="imageUrl" aspect-ratio="1" contain />
             </v-col>
             <v-col cols="9">
               <div><strong>{{ name }}</strong></div>
@@ -70,7 +70,7 @@
         <v-card-text>
           <v-row align="center">
             <v-col cols="3">
-              <v-img v-if="imageUrl" :src="imageUrl" height="80" cover />
+              <v-img v-if="imageUrl" :src="imageUrl" aspect-ratio="1" contain />
             </v-col>
             <v-col cols="9">
               <div><strong>{{ name }}</strong></div>
@@ -136,15 +136,41 @@ const handleDelete = async () => {
 const handleAddStock = async () => {
   loadingAdd.value = true
   try {
+    // First, fetch the current item data to get imgpath ID
+    const getRes = await fetch(`${API_BASE_URL}/api/items/${props.documentId}`, {
+      headers: {
+        Authorization: `Bearer ${API_BEARER_TOKEN}`
+      }
+    })
+    
+    if (!getRes.ok) throw new Error('Failed to fetch item data')
+    
+    const itemData = await getRes.json()
+    const imgpathId = itemData.data?.imgpath?.[0]?.id || null
+    
     const newStock = Number(props.stockqnt) + Number(addAmount.value)
+    
+    // Prepare update data with imgpath ID
+    const updateData = {
+      data: {
+        stockqnt: newStock
+      }
+    }
+    
+    // Add imgpath ID if it exists
+    if (imgpathId) {
+      updateData.data.imgpath = imgpathId
+    }
+    
     const res = await fetch(`${API_BASE_URL}/api/items/${props.documentId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${API_BEARER_TOKEN}`
       },
-      body: JSON.stringify({ data: { stockqnt: newStock } })
+      body: JSON.stringify(updateData)
     })
+    
     if (!res.ok) throw new Error('Update failed')
     showAddDialog.value = false
     emit('updated', props.documentId)
