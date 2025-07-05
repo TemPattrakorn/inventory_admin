@@ -3,7 +3,6 @@
         <v-navigation-drawer
         class="bg-blue-grey-darken-3"
         theme="dark"
-        permanent
         >
             <v-list-item title="My Application" subtitle="Vuetify"></v-list-item>
             <v-divider></v-divider>
