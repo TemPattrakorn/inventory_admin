@@ -143,6 +143,8 @@ const onSubmit = async () => {
         }
       })
     })
+    const resData = await res.clone().json().catch(() => null)
+    console.log('Create item response:', resData)
     if (!res.ok) throw new Error('ไม่สามารถเพิ่มวัสดุใหม่ได้')
     const data = await res.json()
     const newItemId = data.data.id
@@ -161,6 +163,8 @@ const onSubmit = async () => {
         },
         body: formData
       })
+      const uploadResData = await uploadRes.clone().json().catch(() => null)
+      console.log('Upload image response:', uploadResData)
       if (!uploadRes.ok) throw new Error('อัปโหลดไฟล์ไม่สำเร็จ')
     }
 

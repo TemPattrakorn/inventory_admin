@@ -143,6 +143,7 @@ const fetchItems = async () => {
       }
     })
     const data = await res.json()
+    console.log('Fetched items data:', data)
     // Categorize items
     const categorized = {}
     for (const item of data.data) {

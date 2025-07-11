@@ -149,6 +149,7 @@ const fetchItem = async () => {
     }
 
     const data = await res.json()
+    console.log('Fetched item data:', data)
     const item = data.data
     if (!item) throw new Error('ไม่พบข้อมูลวัสดุ')
 
@@ -228,6 +229,8 @@ const onSubmit = async () => {
         },
         body: JSON.stringify({ data: changedFields.value })
       })
+      const updateResData = await res.clone().json().catch(() => null)
+      console.log('Update item response:', updateResData)
       if (!res.ok) throw new Error('ไม่สามารถอัปเดตข้อมูลได้')
     }
 
@@ -239,6 +242,8 @@ const onSubmit = async () => {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${API_BEARER_TOKEN}` }
         })
+        const delResData = await delRes.clone().json().catch(() => null)
+        console.log('Delete old image response:', delResData)
         if (!delRes.ok) throw new Error('ลบรูปภาพเดิมไม่สำเร็จ')
       }
       // Upload new image
@@ -252,6 +257,8 @@ const onSubmit = async () => {
         headers: { Authorization: `Bearer ${API_BEARER_TOKEN}` },
         body: formDataImg
       })
+      const uploadResData = await uploadRes.clone().json().catch(() => null)
+      console.log('Upload image response:', uploadResData)
       if (!uploadRes.ok) throw new Error('อัปโหลดไฟล์ไม่สำเร็จ')
       const uploadData = await uploadRes.json()
       const newImgId = uploadData[0]?.id
@@ -265,6 +272,8 @@ const onSubmit = async () => {
           },
           body: JSON.stringify({ data: { imgpath: newImgId } })
         })
+        const imgUpdateResData = await imgUpdateRes.clone().json().catch(() => null)
+        console.log('Update item with new image response:', imgUpdateResData)
         if (!imgUpdateRes.ok) throw new Error('อัปเดตรูปภาพไม่สำเร็จ')
       }
     }

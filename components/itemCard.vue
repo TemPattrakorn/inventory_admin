@@ -4,7 +4,7 @@
     <!-- image name minqnt stockqnt kebab -->
     <v-row align="center" no-gutters>
       <v-col cols="1">
-        <v-img v-if="imageUrl" :src="imageUrl" aspect-ratio="1" height="90" contain class="mb-2" />
+        <v-img :src="imageUrl || '/No_image_available.png'" aspect-ratio="1" height="90" contain class="mb-2" />
       </v-col>
       <v-col cols="6">
         <v-card-title>{{ name }}</v-card-title>
@@ -122,6 +122,8 @@ const handleDelete = async () => {
         Authorization: `Bearer ${API_BEARER_TOKEN}`
       }
     })
+    const resData = await res.clone().json().catch(() => null)
+    console.log('Delete item response:', resData)
     if (!res.ok) throw new Error('Delete failed')
     showDeleteDialog.value = false
     emit('deleted', props.documentId)
@@ -142,26 +144,22 @@ const handleAddStock = async () => {
         Authorization: `Bearer ${API_BEARER_TOKEN}`
       }
     })
-    
+    const getResData = await getRes.clone().json().catch(() => null)
+    console.log('Fetch item for add stock response:', getResData)
     if (!getRes.ok) throw new Error('Failed to fetch item data')
-    
     const itemData = await getRes.json()
     const imgpathId = itemData.data?.imgpath?.[0]?.id || null
-    
     const newStock = Number(props.stockqnt) + Number(addAmount.value)
-    
     // Prepare update data with imgpath ID
     const updateData = {
       data: {
         stockqnt: newStock
       }
     }
-    
     // Add imgpath ID if it exists
     if (imgpathId) {
       updateData.data.imgpath = imgpathId
     }
-    
     const res = await fetch(`${API_BASE_URL}/api/items/${props.documentId}`, {
       method: 'PUT',
       headers: {
@@ -170,7 +168,8 @@ const handleAddStock = async () => {
       },
       body: JSON.stringify(updateData)
     })
-    
+    const updateResData = await res.clone().json().catch(() => null)
+    console.log('Update item (add stock) response:', updateResData)
     if (!res.ok) throw new Error('Update failed')
     showAddDialog.value = false
     emit('updated', props.documentId)
