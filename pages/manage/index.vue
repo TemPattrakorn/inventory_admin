@@ -41,18 +41,19 @@
 
     <!-- หมวดหมู่ -->
     <v-col cols="3" class="pa-4">
-      <v-card class="pa-4" style="position: sticky; top: 64px; z-index: 1;">
+      <v-card class="pa-4 bg-blue-grey-lighten-5" style="position: sticky; top: 64px; z-index: 1;">
         หมวดหมู่
-        <div class="mb-2 d-flex flex-column">
+        <div class="my-2 d-flex flex-column">
           <v-btn
             v-for="category in sortedCategoryKeys"
             :key="category"
             class="mb-2"
             :color="selectedCategories.includes(category) ? 'primary' : 'default'"
             @click="toggleCategory(category)"
-            :variant="selectedCategories.includes(category) ? 'elevated' : 'outlined'"
+            :variant="selectedCategories.includes(category) ? 'elevated' : 'default'"
             block
             toggle
+            :style="!selectedCategories.includes(category) ? 'background-color: white;' : ''"
           >
             {{ category || 'ไม่ระบุหมวดหมู่' }}
           </v-btn>
@@ -74,9 +75,9 @@
 
       <!-- category card -->
       <v-row v-else>
-        <v-col cols="12" v-for="([category, items], idx) in sortedCategoryEntries" :key="category">
-          <v-card class="mb-6" outlined>
-            <v-card-title>{{ category }}</v-card-title>
+        <v-col cols="12" v-for="([category, items]) in sortedCategoryEntries" :key="category">
+          <v-card class="bg-blue-grey-lighten-5" outlined>
+            <v-card-title class="mt-1">{{ category }}</v-card-title>
 
             <!-- item card -->
             <v-card-text>

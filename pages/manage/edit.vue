@@ -163,6 +163,7 @@ const fetchItem = async () => {
       stockqnt: Number(item.stockqnt) || 0,
       description: item.description ?? ''
     }
+
     formData.value = { ...originalData.value }
 
     // Handle image preview
@@ -221,13 +222,15 @@ const onSubmit = async () => {
   try {
     // 1. Update only changed fields (except image)
     if (Object.keys(changedFields.value).length > 0) {
+      const bodyData = JSON.stringify({ data: changedFields.value })
+      console.log('PUT body sent to backend:', bodyData)
       const res = await fetch(`${API_BASE_URL}/api/items/${documentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${API_BEARER_TOKEN}`
         },
-        body: JSON.stringify({ data: changedFields.value })
+        body: bodyData
       })
       const updateResData = await res.clone().json().catch(() => null)
       console.log('Update item response:', updateResData)
@@ -252,9 +255,12 @@ const onSubmit = async () => {
       formDataImg.append('ref', 'api::item.item')
       formDataImg.append('refId', itemData.value.id)
       formDataImg.append('field', 'imgpath')
+      console.log('POST image sent to backend:', formDataImg)
       const uploadRes = await fetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${API_BEARER_TOKEN}` },
+        headers: { 
+          Authorization: `Bearer ${API_BEARER_TOKEN}` 
+        },
         body: formDataImg
       })
       const uploadResData = await uploadRes.clone().json().catch(() => null)
@@ -264,13 +270,15 @@ const onSubmit = async () => {
       const newImgId = uploadData[0]?.id
       // Update item with new image id
       if (newImgId) {
+        const imgBodyData = JSON.stringify({ data: { imgpath: newImgId } })
+        console.log('PUT body for image update:', imgBodyData)
         const imgUpdateRes = await fetch(`${API_BASE_URL}/api/items/${documentId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${API_BEARER_TOKEN}`
           },
-          body: JSON.stringify({ data: { imgpath: newImgId } })
+          body: imgBodyData
         })
         const imgUpdateResData = await imgUpdateRes.clone().json().catch(() => null)
         console.log('Update item with new image response:', imgUpdateResData)

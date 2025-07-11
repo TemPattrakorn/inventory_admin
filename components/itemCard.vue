@@ -1,10 +1,10 @@
 <template>
-  <v-card class="ma-2" outlined>
+  <v-card>
 
     <!-- image name minqnt stockqnt kebab -->
     <v-row align="center" no-gutters>
       <v-col cols="1">
-        <v-img :src="imageUrl || '/No_image_available.png'" aspect-ratio="1" height="90" contain class="mb-2" />
+        <v-img :src="imageUrl || '/No_image_available.png'" aspect-ratio="1" height="90" contain class="ma-1" />
       </v-col>
       <v-col cols="6">
         <v-card-title>{{ name }}</v-card-title>
