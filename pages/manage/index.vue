@@ -33,7 +33,7 @@
     to="/manage/add" 
     tag="NuxtLink" 
     color="primary" 
-    class="mt-n1">
+    class="mt-n1 mr-4">
       เพิ่มวัสดุใหม่
     </v-btn>
   </v-app-bar>
