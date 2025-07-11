@@ -1,6 +1,6 @@
 <template>
     <v-app>
-        
+        Login
     </v-app>
 </template>
 

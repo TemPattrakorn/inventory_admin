@@ -37,7 +37,7 @@
       เพิ่มวัสดุใหม่
     </v-btn>
   </v-app-bar>
-  <v-row class="ma-auto">
+  <v-row class="ma-auto manage-main-row">
 
     <!-- หมวดหมู่ -->
     <v-col cols="3" class="pa-4">
@@ -47,7 +47,7 @@
           <v-btn
             v-for="category in sortedCategoryKeys"
             :key="category"
-            class="mb-2"
+            class="my-1"
             :color="selectedCategories.includes(category) ? 'primary' : 'default'"
             @click="toggleCategory(category)"
             :variant="selectedCategories.includes(category) ? 'elevated' : 'default'"
@@ -61,7 +61,7 @@
         <v-btn v-if="selectedCategories.length" class="mt-4" color="error" @click="clearSelection" block>ล้างการเลือก</v-btn>
       </v-card>
     </v-col>
-    <v-col cols="9" class="pa-4">
+    <v-col cols="9" class="pa-4 manage-scrollable-col">
       <v-row v-if="loading">
         <v-col cols="12" class="text-center">
           <v-progress-circular indeterminate color="primary" />
@@ -240,3 +240,13 @@ const sortedCategoryKeys = computed(() => {
 
 onMounted(fetchItems)
 </script>
+
+<style scoped>
+.manage-main-row {
+  height: calc(100vh - 64px); /* 64px is the app bar height */
+}
+.manage-scrollable-col {
+  height: 100%;
+  overflow-y: auto;
+}
+</style>

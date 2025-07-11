@@ -6,7 +6,7 @@
         <v-app-bar-title>แก้ไขวัสดุ</v-app-bar-title>
     </v-app-bar>
   <v-container class="d-flex justify-center align-center" style="min-height: 80vh;">
-    <v-card width="500" outlined>
+    <v-card width="500">
       <v-card-text>
         <div v-if="loading" class="text-center">
           <v-progress-circular indeterminate color="primary" />
@@ -114,6 +114,7 @@ const itemData = ref(null)
 const originalData = ref({})
 const originalImgId = ref(null)
 const originalImgUrl = ref('')
+const originalImgName = ref('') // Added for original image name hint
 
 // Form data that will be bound to v-model
 const formData = ref({
@@ -171,10 +172,12 @@ const fetchItem = async () => {
       const img = item.imgpath[0]
       originalImgId.value = img.id
       originalImgUrl.value = img.url ? (img.url.startsWith('http') ? img.url : `${API_BASE_URL}${img.url}`) : ''
+      originalImgName.value = img.name // Store original image name
       imagePreview.value = originalImgUrl.value
     } else {
       originalImgId.value = null
       originalImgUrl.value = ''
+      originalImgName.value = '' // Clear original image name hint
       imagePreview.value = ''
     }
 
