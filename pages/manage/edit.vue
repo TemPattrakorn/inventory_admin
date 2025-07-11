@@ -68,6 +68,9 @@
             show-size
             clearable
           />
+          <div v-if="imagePreview" class="mt-2 text-center">
+            <img :src="imagePreview" alt="preview" style="max-width: 100%; max-height: 200px; border-radius: 8px;" />
+          </div>
           <v-alert v-if="error" type="error" class="mt-2">{{ error }}</v-alert>
           <v-alert v-if="success" type="success" class="mt-2">{{ success }}</v-alert>
           <v-row class="mt-4">
@@ -88,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, onMounted, nextTick, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRuntimeConfig } from '#app'
 
@@ -108,6 +111,9 @@ const file = ref(null)
 
 // Store the original item data
 const itemData = ref(null)
+const originalData = ref({})
+const originalImgId = ref(null)
+const originalImgUrl = ref('')
 
 // Form data that will be bound to v-model
 const formData = ref({
@@ -119,100 +125,151 @@ const formData = ref({
   description: ''
 })
 
+const imagePreview = ref('')
+
 const fetchItem = async () => {
-  const itemId = route.query.id
-  if (!itemId) {
-    error.value = 'ไม่พบ ID ของวัสดุ'
+  const documentId = route.query.id
+  if (!documentId) {
+    error.value = 'ไม่พบ Document ID ของวัสดุ'
     return
   }
 
   loading.value = true
   error.value = ''
-  
+
   try {
-    const res = await fetch(`${API_BASE_URL}/api/items/${itemId}?populate=*`, {
+    const res = await fetch(`${API_BASE_URL}/api/items/${documentId}?populate=*`, {
       headers: {
         Authorization: `Bearer ${API_BEARER_TOKEN}`
       }
     })
-    
+
     if (!res.ok) {
       throw new Error('ไม่สามารถดึงข้อมูลวัสดุได้')
     }
-    
+
     const data = await res.json()
-    console.log('API Response:', data)
-    
-    const attributes = data.data?.attributes || {}
-    console.log('Item Attributes:', attributes)
-    
+    const item = data.data
+    if (!item) throw new Error('ไม่พบข้อมูลวัสดุ')
+
     // Store the complete item data
-    itemData.value = data.data
-    
-    // Populate form data with safe fallbacks for null values
-    formData.value = {
-      name: attributes.name ?? '',
-      unit: attributes.unit ?? '',
-      category: attributes.category ?? '',
-      minqnt: Number(attributes.minqnt) || 0,
-      stockqnt: Number(attributes.stockqnt) || 0,
-      description: attributes.description ?? ''
+    itemData.value = item
+    originalData.value = {
+      name: item.name ?? '',
+      unit: item.unit ?? '',
+      category: item.category ?? '',
+      minqnt: Number(item.minqnt) || 0,
+      stockqnt: Number(item.stockqnt) || 0,
+      description: item.description ?? ''
     }
-    
-    console.log('Form Data Populated:', formData.value)
-    
-    // Wait for DOM to update and reset form validation
+    formData.value = { ...originalData.value }
+
+    // Handle image preview
+    if (item.imgpath && item.imgpath.length > 0) {
+      const img = item.imgpath[0]
+      originalImgId.value = img.id
+      originalImgUrl.value = img.url ? (img.url.startsWith('http') ? img.url : `${API_BASE_URL}${img.url}`) : ''
+      imagePreview.value = originalImgUrl.value
+    } else {
+      originalImgId.value = null
+      originalImgUrl.value = ''
+      imagePreview.value = ''
+    }
+
     await nextTick()
     if (form.value) {
       form.value.resetValidation()
     }
   } catch (e) {
-    console.error('Error fetching item:', e)
     error.value = e.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล'
   } finally {
     loading.value = false
   }
 }
 
+// Watch file input for preview
+watch(file, (newFile) => {
+  if (newFile && newFile instanceof File) {
+    const reader = new FileReader()
+    reader.onload = e => {
+      imagePreview.value = e.target.result
+    }
+    reader.readAsDataURL(newFile)
+  } else {
+    imagePreview.value = originalImgUrl.value
+  }
+})
+
+// Compute changed fields
+const changedFields = computed(() => {
+  const changed = {}
+  for (const key in formData.value) {
+    if (formData.value[key] !== originalData.value[key]) {
+      changed[key] = formData.value[key]
+    }
+  }
+  return changed
+})
+
 const onSubmit = async () => {
   if (!form.value.validate()) return
-  
   submitting.value = true
   error.value = ''
   success.value = ''
-  
+  const documentId = route.query.id
   try {
-    const itemId = route.query.id
-    const payload = {
-      data: {
-        name: formData.value.name,
-        unit: formData.value.unit,
-        category: formData.value.category,
-        minqnt: Number(formData.value.minqnt),
-        stockqnt: Number(formData.value.stockqnt),
-        description: formData.value.description
+    // 1. Update only changed fields (except image)
+    if (Object.keys(changedFields.value).length > 0) {
+      const res = await fetch(`${API_BASE_URL}/api/items/${documentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${API_BEARER_TOKEN}`
+        },
+        body: JSON.stringify({ data: changedFields.value })
+      })
+      if (!res.ok) throw new Error('ไม่สามารถอัปเดตข้อมูลได้')
+    }
+
+    // 2. Handle image update if changed
+    if (file.value) {
+      // Delete old image if exists
+      if (originalImgId.value) {
+        const delRes = await fetch(`${API_BASE_URL}/api/upload/files/${originalImgId.value}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${API_BEARER_TOKEN}` }
+        })
+        if (!delRes.ok) throw new Error('ลบรูปภาพเดิมไม่สำเร็จ')
+      }
+      // Upload new image
+      const formDataImg = new FormData()
+      formDataImg.append('files', file.value)
+      formDataImg.append('ref', 'api::item.item')
+      formDataImg.append('refId', itemData.value.id)
+      formDataImg.append('field', 'imgpath')
+      const uploadRes = await fetch(`${API_BASE_URL}/api/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${API_BEARER_TOKEN}` },
+        body: formDataImg
+      })
+      if (!uploadRes.ok) throw new Error('อัปโหลดไฟล์ไม่สำเร็จ')
+      const uploadData = await uploadRes.json()
+      const newImgId = uploadData[0]?.id
+      // Update item with new image id
+      if (newImgId) {
+        const imgUpdateRes = await fetch(`${API_BASE_URL}/api/items/${documentId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${API_BEARER_TOKEN}`
+          },
+          body: JSON.stringify({ data: { imgpath: newImgId } })
+        })
+        if (!imgUpdateRes.ok) throw new Error('อัปเดตรูปภาพไม่สำเร็จ')
       }
     }
-    
-    console.log('Submitting payload:', payload)
-    
-    const res = await fetch(`${API_BASE_URL}/api/items/${itemId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${API_BEARER_TOKEN}`
-      },
-      body: JSON.stringify(payload)
-    })
-    
-    if (!res.ok) {
-      throw new Error('ไม่สามารถอัปเดตข้อมูลได้')
-    }
-    
     success.value = 'อัปเดตข้อมูลสำเร็จ'
-    setTimeout(() => {
-      router.push('/manage')
-    }, 1500)
+    setTimeout(() => router.push('/manage'), 1200)
   } catch (e) {
     error.value = e.message || 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล'
   } finally {

@@ -64,6 +64,9 @@
             show-size
             clearable
           />
+          <div v-if="imagePreview" class="mt-2 text-center">
+            <img :src="imagePreview" alt="preview" style="max-width: 100%; max-height: 200px; border-radius: 8px;" />
+          </div>
           <v-alert v-if="error" type="error" class="mt-2">{{ error }}</v-alert>
           <v-alert v-if="success" type="success" class="mt-2">{{ success }}</v-alert>
           <v-row class="mt-4">
@@ -81,7 +84,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRuntimeConfig } from '#app'
 
@@ -103,6 +106,19 @@ const item = ref({
   description: ''
 })
 const file = ref(null)
+const imagePreview = ref('')
+
+watch(file, (newFile) => {
+  if (newFile && newFile instanceof File) {
+    const reader = new FileReader()
+    reader.onload = e => {
+      imagePreview.value = e.target.result
+    }
+    reader.readAsDataURL(newFile)
+  } else {
+    imagePreview.value = ''
+  }
+})
 
 const onSubmit = async () => {
   error.value = ''
