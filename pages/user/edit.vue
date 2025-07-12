@@ -167,14 +167,15 @@ const onSubmit = async () => {
   try {
     // Update only changed fields
     if (Object.keys(changedFields.value).length > 0) {
-      const bodyData = JSON.stringify({ data: changedFields.value })
-      console.log('PUT body sent to backend:', bodyData)
+        console.log('changedFields:', changedFields.value)
+        const bodyData = JSON.stringify({ data: changedFields.value })
+        console.log('PUT body sent to backend:', bodyData)
       
-      const res = await fetch(`${API_BASE_URL}/api/inventory-users/${documentId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${API_BEARER_TOKEN}`
+        const res = await fetch(`${API_BASE_URL}/api/inventory-users/${documentId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            Authorization: `Bearer ${API_BEARER_TOKEN}`
         },
         body: bodyData
       })

@@ -50,7 +50,7 @@
             class="my-1"
             :color="selectedCategories.includes(category) ? 'primary' : 'default'"
             @click="toggleCategory(category)"
-            :variant="selectedCategories.includes(category) ? 'elevated' : 'default'"
+            :variant="selectedCategories.includes(category) ? 'elevated' : 'flat'"
             block
             toggle
             :style="!selectedCategories.includes(category) ? 'background-color: white;' : ''"

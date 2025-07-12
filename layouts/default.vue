@@ -5,7 +5,7 @@
         theme="dark"
         >
             <v-list-item class = "my-2"
-              prepend-avatar="https://randomuser.me/api/portraits/men/1.jpg"
+              prepend-avatar="https://lh3.googleusercontent.com/a/ACg8ocJlJLMU4FLDHIgQ0LYsiyGl3M6EOL7atGPDVmruUFUejT02t7So=s96-c"
               title="Pattrakorn Srisuk"
               subtitle="tem@gmailcom"
             ></v-list-item>
