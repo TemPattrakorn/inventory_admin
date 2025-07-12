@@ -43,7 +43,7 @@
     <v-col cols="3" class="pa-4">
       <v-card class="pa-4 bg-blue-grey-lighten-5" style="position: sticky; top: 64px; z-index: 1;">
         หมวดหมู่
-        <div class="my-2 d-flex flex-column">
+        <div class="mt-3 d-flex flex-column">
           <v-btn
             v-for="category in sortedCategoryKeys"
             :key="category"

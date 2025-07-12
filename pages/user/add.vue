@@ -3,7 +3,7 @@
     <v-btn icon @click="onCancel">
       <v-icon>mdi-arrow-left</v-icon>
     </v-btn>
-    <v-app-bar-title>เพิ่มผู้ใช้ใหม่</v-app-bar-title>
+    <v-app-bar-title>เพิ่มบุคลากร</v-app-bar-title>
   </v-app-bar>
   <v-container class="d-flex justify-center align-center" style="min-height: 80vh;">
     <v-card width="500" outlined>
@@ -11,7 +11,7 @@
         <v-form ref="form" v-model="valid" @submit.prevent="onSubmit">
           <v-text-field
             v-model="user.username"
-            label="ชื่อผู้ใช้"
+            label="ชื่อ"
             :rules="[v => !!v || 'กรุณากรอกชื่อผู้ใช้']"
             required
           />

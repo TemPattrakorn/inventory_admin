@@ -67,6 +67,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRuntimeConfig } from '#app'
+import { navigateTo } from 'nuxt/app'
 
 const config = useRuntimeConfig()
 const API_BASE_URL = config.public.apiUrl
@@ -107,8 +108,9 @@ const fetchUsers = async () => {
 onMounted(fetchUsers)
 
 const onEdit = (item) => {
-  // implement navigation or dialog for edit
+    navigateTo(`/user/edit?id=${item.documentId}`)
 }
+
 const onDelete = async (item, confirm = false) => {
   if (!confirm) {
     selectedUser.value = item
@@ -136,4 +138,5 @@ const onDelete = async (item, confirm = false) => {
     selectedUser.value = null
   }
 }
+
 </script>
