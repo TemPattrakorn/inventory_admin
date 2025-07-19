@@ -65,6 +65,7 @@
 </template>
 
 <script setup>
+definePageMeta({ middleware: 'auth' })
 import { ref, onMounted } from 'vue'
 import { useRuntimeConfig } from '#app'
 import { navigateTo } from 'nuxt/app'

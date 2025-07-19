@@ -83,7 +83,15 @@
             <v-card-text>
               <v-row>
                 <v-col cols="12" v-for="item in items" :key="item.id">
-                  <itemCard :documentId="item.documentId" :name="item.name" :stockqnt="item.stockqnt" :minqnt="item.minqnt" :imageUrl="item.imageUrl" @deleted="fetchItems" @updated="fetchItems" />
+                  <itemCard
+                    :documentId="item.documentId" 
+                    :name="item.name" 
+                    :stockqnt="item.stockqnt"  
+                    :minqnt="item.minqnt" 
+                    :imageUrl="item.imageUrl" 
+                    @deleted="fetchItems" 
+                    @updated="fetchItems" 
+                  />
                 </v-col>
               </v-row>
             </v-card-text>
@@ -97,6 +105,7 @@
 </template>
 
 <script setup>
+definePageMeta({ middleware: 'auth' })
 import { ref, onMounted, computed } from 'vue'
 import { useRuntimeConfig } from '#app'
 import itemCard from '~/components/itemCard.vue'

@@ -91,6 +91,7 @@
 </template>
 
 <script setup>
+definePageMeta({ middleware: 'auth' })
 import { ref, onMounted, nextTick, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRuntimeConfig } from '#app'

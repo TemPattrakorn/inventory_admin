@@ -5,9 +5,9 @@
         theme="dark"
         >
             <v-list-item class = "my-2"
-              prepend-avatar="https://lh3.googleusercontent.com/a/ACg8ocJlJLMU4FLDHIgQ0LYsiyGl3M6EOL7atGPDVmruUFUejT02t7So=s96-c"
-              title="Pattrakorn Srisuk"
-              subtitle="tem@gmailcom"
+              :prepend-avatar="userProfile?.photoURL || userProfile?.profilePicture || ''"
+              :title="userProfile?.username || 'Guest'"
+              :subtitle="userProfile?.email || ''"
             ></v-list-item>
             <v-divider></v-divider>
             <v-list nav>
@@ -40,7 +40,7 @@
 
         <template v-slot:append>
           <div class="pa-2">
-            <v-btn block>
+            <v-btn block @click="logout">
               Logout
             </v-btn>
           </div>
@@ -51,4 +51,33 @@
         </v-main>
     </v-app>
 </template>
+
+<script setup lang="ts">
+import { useRouter, useRoute } from 'vue-router'
+import { useNuxtApp } from '#app'
+import { onMounted, ref } from 'vue'
+import { signOut, type Auth } from 'firebase/auth'
+
+const router = useRouter()
+const nuxtApp = useNuxtApp()
+const auth = nuxtApp.$firebaseAuth as Auth
+const userProfile = ref<any>(null)
+
+onMounted(() => {
+  if (process.client) {
+    const profile = localStorage.getItem('userProfile')
+    userProfile.value = profile ? JSON.parse(profile) : null
+  }
+})
+
+const logout = async () => {
+  if (process.client) {
+    localStorage.removeItem('userProfile')
+    try {
+      await signOut(auth)
+    } catch (e) {}
+    router.push('/login')
+  }
+}
+</script>
 

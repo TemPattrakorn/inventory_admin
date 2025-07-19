@@ -47,6 +47,7 @@
 </template>
 
 <script setup>
+definePageMeta({ middleware: 'auth' })
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRuntimeConfig } from '#app'

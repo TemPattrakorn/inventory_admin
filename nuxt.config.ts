@@ -13,6 +13,9 @@ export default defineNuxtConfig({
     },
     //...
   ],
+  plugins: [
+    '~/plugins/firebase.ts',
+  ],
   vite: {
     vue: {
       template: {
