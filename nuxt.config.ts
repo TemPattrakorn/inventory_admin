@@ -29,5 +29,10 @@ export default defineNuxtConfig({
       apiToken: process.env.NUXT_PUBLIC_API_TOKEN,
       firebaseApiKey: process.env.NUXT_PUBLIC_FIREBASE_API_KEY
     }
+  },
+  app: {
+    head: {
+      title: 'Inventory management system - CMS',
+    }
   }
 })

@@ -55,6 +55,26 @@ const fetchUserProfile = async (email: string) => {
   return data.data[0]
 }
 
+const imageToDataUrl = async (url: string): Promise<string> => {
+  const response = await fetch(url)
+  const blob = await response.blob()
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+interface UserProfile {
+  id: number
+  email: string
+  username: string
+  role: string
+  photoURL?: string
+  // ...other fields from Strapi
+}
+
 const signInWithGoogle = async () => {
   loading.value = true
   error.value = ''
@@ -65,9 +85,12 @@ const signInWithGoogle = async () => {
     const user = result.user
     if (!user.email) throw new Error('No email found in Google account.')
     // Fetch user profile from Strapi using static API token
-    const profile = await fetchUserProfile(user.email)
+    const profile: UserProfile = await fetchUserProfile(user.email)
     if (profile.role !== 'admin') {
       throw new Error('You are not authorized to use this system.')
+    }
+    if (user.photoURL) {
+      profile.photoURL = await imageToDataUrl(user.photoURL)
     }
     // Store profile in localStorage (or Pinia/Vuex if you prefer)
     localStorage.setItem('userProfile', JSON.stringify(profile))

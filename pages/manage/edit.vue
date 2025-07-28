@@ -38,9 +38,9 @@
             control-variant="default"
             label="จำนวนขั้นต่ำ"
             :hide-input="false"
-            :inset="false"
             :rules="[v => v !== null && v !== '' && !isNaN(v) || 'กรุณากรอกจำนวนขั้นต่ำ']"
             required
+            inset
           />
           <v-number-input
             v-model="formData.stockqnt"
@@ -49,9 +49,9 @@
             control-variant="default"
             label="จำนวนคงเหลือ"
             :hide-input="false"
-            :inset="false"
             :rules="[v => v !== null && v !== '' && !isNaN(v) || 'กรุณากรอกจำนวนคงเหลือ']"
             required
+            inset
           />
           <v-textarea
             v-model="formData.description"

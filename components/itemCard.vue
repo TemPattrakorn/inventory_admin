@@ -66,7 +66,7 @@
     <!-- add stock dialog -->
     <v-dialog v-model="showAddDialog" max-width="500">
       <v-card>
-        <v-card-title>Add Item Quantity</v-card-title>
+        <v-card-title>เพิ่มจำนวนวัสดุ</v-card-title>
         <v-card-text>
           <v-row align="center">
             <v-col cols="3">
@@ -79,7 +79,7 @@
           </v-row>
           <v-row>
             <v-col cols="12">
-              <v-number-input v-model="addAmount" :min="1" label="Amount to add" />
+              <v-number-input v-model="addAmount" :min="1" label="Amount to add" inset />
             </v-col>
           </v-row>
         </v-card-text>
