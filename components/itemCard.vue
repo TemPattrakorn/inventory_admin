@@ -13,7 +13,7 @@
         <div>จำนวนขั้นต่ำ: {{ minqnt }}</div>
       </v-col>
       <v-col cols="2">
-        <div>จำนวนคงเหลือ: {{ stockqnt }}</div>
+        <div>จำนวนคงเหลือ: {{ stockqnt }} {{ unit }}</div>
       </v-col>
       <v-col cols="1" class="d-flex justify-end">
 
@@ -43,7 +43,7 @@
     <!-- delete item -->
     <v-dialog v-model="showDeleteDialog" max-width="500">
       <v-card>
-        <v-card-title>Confirm Delete</v-card-title>
+        <v-card-title>ลบรายการวัสดุ</v-card-title>
         <v-card-text>
           <v-row align="center">
             <v-col cols="3">
@@ -51,14 +51,14 @@
             </v-col>
             <v-col cols="9">
               <div><strong>{{ name }}</strong></div>
-              <div>จำนวนคงเหลือ: {{ stockqnt }}</div>
+              <div>จำนวนคงเหลือ: {{ stockqnt }} {{ unit }}</div>
             </v-col>
           </v-row>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text @click="showDeleteDialog = false">Cancel</v-btn>
-          <v-btn color="error" :loading="loadingDelete" @click="handleDelete">Confirm</v-btn>
+          <v-btn text @click="showDeleteDialog = false">ยกเลิก</v-btn>
+          <v-btn color="error" :loading="loadingDelete" @click="handleDelete">ยืนยัน</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -74,19 +74,19 @@
             </v-col>
             <v-col cols="9">
               <div><strong>{{ name }}</strong></div>
-              <div>Current stock: {{ stockqnt }}</div>
+              <div>คงเหลือ {{ stockqnt }} {{ unit }}</div>
             </v-col>
           </v-row>
           <v-row>
             <v-col cols="12">
-              <v-number-input v-model="addAmount" :min="1" label="Amount to add" inset />
+              <v-number-input v-model="addAmount" :min="1" :label="`จำนวนที่เพิ่ม (${unit})`" inset />
             </v-col>
           </v-row>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn text @click="showAddDialog = false">Cancel</v-btn>
-          <v-btn color="primary" :loading="loadingAdd" @click="handleAddStock" :disabled="addAmount <= 0">Confirm</v-btn>
+          <v-btn text @click="showAddDialog = false">ยกเลิก</v-btn>
+          <v-btn color="primary" :loading="loadingAdd" @click="handleAddStock" :disabled="addAmount <= 0">ยืนยัน</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -101,7 +101,8 @@ const props = defineProps({
   name: String,
   stockqnt: Number,
   minqnt: Number,
-  imageUrl: String
+  imageUrl: String,
+  unit: String
 })
 const emit = defineEmits(['deleted', 'updated'])
 const showDeleteDialog = ref(false)

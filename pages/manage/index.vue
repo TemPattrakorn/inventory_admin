@@ -89,6 +89,7 @@
                     :stockqnt="item.stockqnt"  
                     :minqnt="item.minqnt" 
                     :imageUrl="item.imageUrl" 
+                    :unit="item.unit"
                     @deleted="fetchItems" 
                     @updated="fetchItems" 
                   />
