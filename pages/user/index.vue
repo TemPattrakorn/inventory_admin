@@ -1,6 +1,7 @@
 <template>
   <v-app-bar title="รายชื่อบุคลากร">
     <v-btn 
+      prepend-icon="mdi-plus"
       variant="tonal"
       to="/user/add"
       tag="NuxtLink" 

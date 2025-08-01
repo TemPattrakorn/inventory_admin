@@ -29,6 +29,7 @@
       หมดแล้ว {{ depletedCount }} รายการ
     </v-btn>
     <v-btn 
+    prepend-icon="mdi-plus"
     variant="tonal"
     to="/manage/add" 
     tag="NuxtLink" 
