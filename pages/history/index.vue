@@ -1,68 +1,197 @@
 <template>
   <v-app-bar title="ประวัติการเบิกใช้">
-    <!-- Clear Filters -->
+    <!-- Quick Clear Filters -->
     <v-btn
       v-if="hasActiveFilters"
-      variant="tonal"
-      color="grey"
       @click="clearFilters"
-      class="mr-2"
+      prepend-icon="mdi-filter-remove"
+      variant="text"
+      size="small"
+      color="grey-darken-1"
     >
       ล้างตัวกรอง
     </v-btn>
-    
-    <!-- User Filter -->
-    <v-select
-      v-model="selectedUser"
-      :items="userOptions"
-      item-title="username"
-      item-value="id"
-      label="ผู้เบิก"
-      density="compact"
-      clearable
-      style="max-width: 200px"
-      class="mr-2 mt-6"
-    />
-    
-    <!-- Category Filter -->
-    <v-select
-      v-model="selectedCategory"
-      :items="categoryOptions"
-      item-title="title"
-      item-value="value"
-      label="หมวดหมู่"
-      density="compact"
-      clearable
-      style="max-width: 200px"
-      class="mr-2 mt-6"
-    />
 
-    <!-- Item Filter -->
-    <v-autocomplete
-      v-model="selectedItem"
-      :items="filteredItemOptions"
-      item-title="name"
-      item-value="id"
-      label="รายการ"
-      density="compact"
-      clearable
-      style="max-width: 250px"
-      class="mr-2 mt-6"
-      placeholder="พิมพ์เพื่อค้นหา"
-      no-data-text="ไม่มีรายการในหมวดหมู่นี้"
-    />
-
-    <!-- Status Filter -->
-    <v-select
-      v-model="selectedStatus"
-      :items="statusOptions"
-      label="สถานะ"
-      density="compact"
-      clearable
-      style="max-width: 200px"
-      class="mr-4 mt-6"
-    />
+    <v-btn
+      @click="showFilters = !showFilters"
+      :prepend-icon="showFilters ? 'mdi-filter-off' : 'mdi-filter'"
+      variant="tonal"
+      class="mr-4"
+    >
+      ตัวกรอง
+      <v-chip
+        v-if="activeFilterCount > 0"
+        :text="activeFilterCount.toString()"
+        size="small"
+        color="primary"
+        class="ml-2"
+      />
+    </v-btn>
   </v-app-bar>
+
+  <!-- Collapsible Filter Section -->
+  <v-expand-transition>
+    <v-card 
+      v-show="showFilters" 
+      class="mx-4 mt-4"
+    >
+      <v-card-title class="d-flex align-center py-3">
+        <v-icon class="mr-2">mdi-filter-variant</v-icon>
+        ตัวกรองข้อมูล
+        <v-spacer />
+        <v-btn
+          @click="showFilters = false"
+          icon="mdi-close"
+          variant="text"
+          size="small"
+        />
+      </v-card-title>
+      
+      <v-card-text class="pt-0">
+        <v-row>
+          <!-- User Filter -->
+          <v-col cols="12" md="6" lg="3">
+            <v-select
+              v-model="selectedUser"
+              :items="userOptions"
+              item-title="username"
+              item-value="id"
+              label="ผู้เบิก"
+              density="compact"
+              clearable
+              prepend-inner-icon="mdi-account"
+            />
+          </v-col>
+          
+          <!-- Category Filter -->
+          <v-col cols="12" md="6" lg="3">
+            <v-select
+              v-model="selectedCategory"
+              :items="categoryOptions"
+              item-title="title"
+              item-value="value"
+              label="หมวดหมู่"
+              density="compact"
+              clearable
+              prepend-inner-icon="mdi-tag"
+            />
+          </v-col>
+
+          <!-- Item Filter -->
+          <v-col cols="12" md="6" lg="4">
+            <v-autocomplete
+              v-model="selectedItem"
+              :items="filteredItemOptions"
+              item-title="name"
+              item-value="id"
+              label="รายการ"
+              density="compact"
+              clearable
+              placeholder="พิมพ์เพื่อค้นหา"
+              no-data-text="ไม่มีรายการในหมวดหมู่นี้"
+              prepend-inner-icon="mdi-package"
+            />
+          </v-col>
+
+          <!-- Status Filter -->
+          <v-col cols="12" md="6" lg="2">
+            <v-select
+              v-model="selectedStatus"
+              :items="statusOptions"
+              label="สถานะ"
+              density="compact"
+              clearable
+              prepend-inner-icon="mdi-information"
+            />
+          </v-col>
+        </v-row>
+
+        <v-row>
+          <!-- Start Date Filter -->
+          <v-col cols="12" md="6" lg="3">
+            <v-menu
+              v-model="startDateMenu"
+              :close-on-content-click="false"
+              transition="scale-transition"
+              offset-y
+              min-width="auto"
+            >
+              <template v-slot:activator="{ props }">
+                <v-text-field
+                  v-model="formattedStartDate"
+                  label="วันที่เริ่มต้น"
+                  prepend-inner-icon="mdi-calendar"
+                  readonly
+                  v-bind="props"
+                  density="compact"
+                  clearable
+                  @click:clear="startDate = null"
+                />
+              </template>
+              <v-date-picker
+                v-model="startDate"
+                @update:model-value="startDateMenu = false"
+                no-title
+                scrollable
+              />
+            </v-menu>
+          </v-col>
+          
+          <!-- End Date Filter -->
+          <v-col cols="12" md="6" lg="3">
+            <v-menu
+              v-model="endDateMenu"
+              :close-on-content-click="false"
+              transition="scale-transition"
+              offset-y
+              min-width="auto"
+            >
+              <template v-slot:activator="{ props }">
+                <v-text-field
+                  v-model="formattedEndDate"
+                  label="วันที่สิ้นสุด"
+                  prepend-inner-icon="mdi-calendar"
+                  readonly
+                  v-bind="props"
+                  density="compact"
+                  clearable
+                  @click:clear="endDate = null"
+                />
+              </template>
+              <v-date-picker
+                v-model="endDate"
+                @update:model-value="endDateMenu = false"
+                no-title
+                scrollable
+              />
+            </v-menu>
+          </v-col>
+
+          <!-- Filter Actions -->
+          <v-col cols="12" lg="6" class="d-flex align-center justify-end">
+            <v-btn
+              v-if="hasActiveFilters"
+              @click="clearFilters"
+              prepend-icon="mdi-filter-remove"
+              variant="outlined"
+              color="grey"
+              class="mr-2"
+            >
+              ล้างตัวกรองทั้งหมด
+            </v-btn>
+            <v-btn
+              @click="showFilters = false"
+              prepend-icon="mdi-check"
+              color="primary"
+              variant="elevated"
+            >
+              ปิดตัวกรอง
+            </v-btn>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+  </v-expand-transition>
 
   <v-container fluid class="pa-4">
     <!-- Loading State -->
@@ -322,6 +451,11 @@ const selectedStatus = ref(null)
 const selectedUser = ref(null)
 const selectedCategory = ref(null)
 const selectedItem = ref(null)
+const startDate = ref(null)
+const endDate = ref(null)
+const startDateMenu = ref(false)
+const endDateMenu = ref(false)
+const showFilters = ref(false)
 const showDetailsDialog = ref(false)
 const selectedRequisition = ref(null)
 const actionLoading = ref(false)
@@ -396,8 +530,38 @@ const filteredItemOptions = computed(() => {
 })
 
 const hasActiveFilters = computed(() => 
-  selectedStatus.value || selectedUser.value || selectedCategory.value || selectedItem.value
+  selectedStatus.value || selectedUser.value || selectedCategory.value || selectedItem.value || startDate.value || endDate.value
 )
+
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (selectedStatus.value) count++
+  if (selectedUser.value) count++
+  if (selectedCategory.value) count++
+  if (selectedItem.value) count++
+  if (startDate.value) count++
+  if (endDate.value) count++
+  return count
+})
+
+// Computed properties for formatted dates
+const formattedStartDate = computed(() => {
+  if (!startDate.value) return ''
+  const date = new Date(startDate.value)
+  const day = date.getDate().toString().padStart(2, '0')
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const year = date.getFullYear()
+  return `${day}/${month}/${year}`
+})
+
+const formattedEndDate = computed(() => {
+  if (!endDate.value) return ''
+  const date = new Date(endDate.value)
+  const day = date.getDate().toString().padStart(2, '0')
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const year = date.getFullYear()
+  return `${day}/${month}/${year}`
+})
 
 const filteredRequisitions = computed(() => {
   let filtered = [...requisitions.value]
@@ -424,6 +588,32 @@ const filteredRequisitions = computed(() => {
     filtered = filtered.filter(req => 
       req.requisition_items?.some(ri => ri.item?.id === selectedItem.value)
     )
+  }
+
+  // Date range filter
+  if (startDate.value || endDate.value) {
+    filtered = filtered.filter(req => {
+      if (!req.createdAt) return false
+      
+      const reqDate = new Date(req.createdAt)
+      const reqDateOnly = new Date(reqDate.getFullYear(), reqDate.getMonth(), reqDate.getDate())
+      
+      // Check start date
+      if (startDate.value) {
+        const start = new Date(startDate.value)
+        const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+        if (reqDateOnly < startDateOnly) return false
+      }
+      
+      // Check end date
+      if (endDate.value) {
+        const end = new Date(endDate.value)
+        const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+        if (reqDateOnly > endDateOnly) return false
+      }
+      
+      return true
+    })
   }
 
   return filtered
@@ -678,6 +868,10 @@ const clearFilters = () => {
   selectedUser.value = null
   selectedCategory.value = null
   selectedItem.value = null
+  startDate.value = null
+  endDate.value = null
+  startDateMenu.value = false
+  endDateMenu.value = false
 }
 
 // Clear item selection when category changes to avoid invalid combinations
