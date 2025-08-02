@@ -43,22 +43,48 @@
     <!-- delete item -->
     <v-dialog v-model="showDeleteDialog" max-width="500">
       <v-card>
-        <v-card-title>ลบรายการวัสดุ</v-card-title>
+        <v-card-title class="text-h5 pa-4 text-error">
+          <v-icon class="mr-2 text-error">mdi-delete</v-icon>
+          ลบรายการวัสดุ
+        </v-card-title>
+        
         <v-card-text>
-          <v-row align="center">
+
+          <v-divider class="mb-3"/>
+          
+          <v-row align="center" class="mb-3">
             <v-col cols="3">
-              <v-img v-if="imageUrl" :src="imageUrl" aspect-ratio="1" contain />
+              <v-img 
+                :src="imageUrl || '/No_image_available.png'" 
+                aspect-ratio="1" 
+                contain 
+                class="rounded border"
+              />
             </v-col>
             <v-col cols="9">
-              <div><strong>{{ name }}</strong></div>
-              <div>จำนวนคงเหลือ: {{ stockqnt }} {{ unit }}</div>
+              <div class="text-h6 mb-2">{{ name }}</div>
+              <div class="text-body-2 text-grey-darken-1">จำนวนคงเหลือ: {{ stockqnt }} {{ unit }}</div>
             </v-col>
           </v-row>
         </v-card-text>
-        <v-card-actions>
+        
+        <v-card-actions class="px-6 pb-6">
           <v-spacer />
-          <v-btn text @click="showDeleteDialog = false">ยกเลิก</v-btn>
-          <v-btn color="error" :loading="loadingDelete" @click="handleDelete">ยืนยัน</v-btn>
+          <v-btn 
+            color="grey" 
+            variant="outlined" 
+            @click="showDeleteDialog = false"
+          >
+            ยกเลิก
+          </v-btn>
+          <v-btn 
+            color="error" 
+            variant="elevated"
+            :loading="loadingDelete" 
+            @click="handleDelete"
+          >
+            ยืนยัน
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -66,27 +92,61 @@
     <!-- add stock dialog -->
     <v-dialog v-model="showAddDialog" max-width="500">
       <v-card>
-        <v-card-title>เพิ่มจำนวนวัสดุ</v-card-title>
+        <v-card-title class="text-h5 pa-4 text-primary">
+          <v-icon class="mr-2 text-primary">mdi-plus-circle</v-icon>
+          เพิ่มจำนวนวัสดุ
+        </v-card-title>
+        
         <v-card-text>
+          
+          <v-divider class="mb-3"/>
+          
           <v-row align="center">
             <v-col cols="3">
-              <v-img v-if="imageUrl" :src="imageUrl" aspect-ratio="1" contain />
+              <v-img 
+                :src="imageUrl || '/No_image_available.png'" 
+                aspect-ratio="1" 
+                contain 
+                class="rounded border"
+              />
             </v-col>
             <v-col cols="9">
-              <div><strong>{{ name }}</strong></div>
-              <div>คงเหลือ {{ stockqnt }} {{ unit }}</div>
+              <div class="text-h6 mb-2">{{ name }}</div>
+              <div class="text-body-2 text-grey-darken-1">คงเหลือ {{ stockqnt }} {{ unit }}</div>
             </v-col>
           </v-row>
+          
           <v-row>
             <v-col cols="12">
-              <v-number-input v-model="addAmount" :min="1" :label="`จำนวนที่เพิ่ม (${unit})`" inset />
+              <v-number-input 
+                v-model="addAmount" 
+                :min="1" 
+                :label="`จำนวนที่เพิ่ม (${unit})`" 
+                density="comfortable"
+                inset
+              />
             </v-col>
           </v-row>
         </v-card-text>
-        <v-card-actions>
+        
+        <v-card-actions class="px-6 pb-6">
           <v-spacer />
-          <v-btn text @click="showAddDialog = false">ยกเลิก</v-btn>
-          <v-btn color="primary" :loading="loadingAdd" @click="handleAddStock" :disabled="addAmount <= 0">ยืนยัน</v-btn>
+          <v-btn 
+            color="grey" 
+            variant="outlined" 
+            @click="showAddDialog = false"
+          >
+            ยกเลิก
+          </v-btn>
+          <v-btn 
+            color="primary" 
+            variant="elevated"
+            :loading="loadingAdd" 
+            @click="handleAddStock" 
+            :disabled="addAmount <= 0"
+          >
+            ยืนยัน
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

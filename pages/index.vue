@@ -1,6 +1,6 @@
 <template>
   <div style="background-color: #F5F5F5; min-height: 100vh;">
-    <v-container class="mx-auto pa-4">
+    <v-container class="mx-auto pa-4" style="max-width: 1280px;">
       <v-card>
         <v-card-title class="text-h5 pa-4 d-flex justify-space-between align-center">
           <span>คำขอเบิกวัสดุ</span>
@@ -52,7 +52,7 @@
                     color="error"
                     size="small"
                     variant="tonal"
-                    @click="cancelRequisition(item)"
+                    @click="openCancelDialog(item)"
                 >
                     ยกเลิกการเบิก
                 </v-btn>
@@ -68,6 +68,65 @@
           </v-data-table>
       </v-card>
     </v-container>
+
+    <!-- Cancel Requisition Dialog -->
+    <v-dialog v-model="showCancelDialog" max-width="600px">
+      <v-card>
+        <v-card-title class="text-h5 pa-4 text-error">
+          <v-icon class="mr-2 text-error">mdi-delete</v-icon>
+          ลบคำขอเบิกวัสดุ
+        </v-card-title>
+        
+        <v-card-text>
+          <div>
+            <p class="text-body-2 mb-2">ผู้ขอเบิก: {{ selectedItemToCancel?.username }}</p>
+            <p class="text-body-2 mb-4">วันที่ขอเบิก: {{ selectedItemToCancel ? formatDate(selectedItemToCancel.createdAt) : '' }}</p>
+          </div>
+          
+          <v-divider class="mb-3"/>
+          
+          <div >
+            <h6 class="text-h6 mb-2">รายการวัสดุในคำขอเบิก:</h6>
+            <v-list density="compact" class="bg-grey-lighten-4 rounded">
+              <v-list-item
+                v-for="(reqItem, index) in selectedItemToCancel?.items"
+                :key="reqItem.id"
+                :class="{ 'border-b': index < selectedItemToCancel.items.length - 1 }"
+              >
+                <v-list-item-title class="text-body-2">
+                  {{ reqItem.name }}
+                </v-list-item-title>
+                
+                <template v-slot:append>
+                  <v-chip size="small">
+                    {{ reqItem.quantity }} {{ reqItem.unit }}
+                  </v-chip>
+                </template>
+              </v-list-item>
+            </v-list>
+          </div>
+        </v-card-text>
+        
+        <v-card-actions class="pa-4">
+          <v-spacer></v-spacer>
+          <v-btn
+            color="grey"
+            variant="outlined"
+            @click="closeCancelDialog"
+          >
+            ยกเลิก
+          </v-btn>
+          <v-btn
+            color="error"
+            variant="elevated"
+            @click="confirmCancelRequisition"
+            :loading="cancelLoading"
+          >
+            ยืนยันการลบ
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -83,6 +142,11 @@ const API_BEARER_TOKEN = config.public.apiToken
 
 const loading = ref(false)
 const tableItems = ref([])
+
+// Dialog state
+const showCancelDialog = ref(false)
+const selectedItemToCancel = ref(null)
+const cancelLoading = ref(false)
 
 const headers = ref([
   {
@@ -179,7 +243,7 @@ const fetchRequisitions = async () => {
           id: requisition.id,
           documentId: requisition.documentId,
           username: requisition.inventory_user.username,
-          reqDescription: requisition.reqDescription || 'ไม่ระบุ',
+          reqDescription: requisition.reqDescription && requisition.reqDescription.trim() !== '' ? requisition.reqDescription : '-',
           items: itemsWithDetails,
           createdAt: requisition.createdAt,
           originalData: requisition, // Keep original data for actions
@@ -311,6 +375,30 @@ const cancelRequisition = async (item) => {
     }
   } catch (error) {
     console.error('Error cancelling requisition:', error)
+  }
+}
+
+const openCancelDialog = (item) => {
+  selectedItemToCancel.value = item
+  showCancelDialog.value = true
+}
+
+const closeCancelDialog = () => {
+  showCancelDialog.value = false
+  selectedItemToCancel.value = null
+  cancelLoading.value = false
+}
+
+const confirmCancelRequisition = async () => {
+  if (!selectedItemToCancel.value) return
+  
+  cancelLoading.value = true
+  try {
+    await cancelRequisition(selectedItemToCancel.value)
+    closeCancelDialog()
+  } catch (error) {
+    console.error('Error in confirm cancel:', error)
+    cancelLoading.value = false
   }
 }
 
