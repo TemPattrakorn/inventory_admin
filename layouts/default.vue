@@ -46,7 +46,7 @@
           </div>
         </template>
         </v-navigation-drawer>
-        <v-main >
+        <v-main style="background-color: #F5F5F5;">
             <slot />
         </v-main>
     </v-app>

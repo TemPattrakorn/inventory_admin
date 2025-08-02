@@ -1,5 +1,5 @@
 <template>
-  <div style="background-color: #F5F5F5; min-height: 100vh;">
+  <div style="min-height: 100vh;">
     <v-container class="mx-auto pa-4" style="max-width: 1280px;">
       <v-card>
         <v-card-title class="text-h5 pa-4 d-flex justify-space-between align-center">
