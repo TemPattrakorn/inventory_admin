@@ -12,8 +12,9 @@
     />
     <v-btn
       class="mt-n1 mr-2"
-      :color="showNearlyDepleted ? 'warning' : 'default'"
-      :variant="showNearlyDepleted ? 'elevated' : 'flat'"
+      prepend-icon="mdi-alert-outline"
+      color="warning"
+      :variant="showNearlyDepleted ? 'elevated' : 'tonal'"
       toggle
       @click="toggleNearlyDepleted"
     >
@@ -21,8 +22,9 @@
     </v-btn>
     <v-btn
       class="mt-n1 mr-2"
-      :color="showDepleted ? 'error' : 'default'"
-      :variant="showDepleted ? 'elevated' : 'flat'"
+      prepend-icon="mdi-alert-circle-outline"
+      color="error"
+      :variant="showDepleted ? 'elevated' : 'tonal'"
       toggle
       @click="toggleDepleted"
     >
@@ -42,24 +44,31 @@
 
     <!-- หมวดหมู่ -->
     <v-col cols="3" class="pa-4">
-      <v-card class="pa-4 bg-blue-grey-lighten-5" style="position: sticky; top: 64px; z-index: 1;">
-        หมวดหมู่
-        <div class="mt-3 d-flex flex-column">
+      <v-card class="pa-4" style="position: sticky; top: 64px; z-index: 1;">
+        <div class="text-h6 mb-3">หมวดหมู่</div>
+        <div class="d-flex flex-column">
           <v-btn
             v-for="category in sortedCategoryKeys"
             :key="category"
-            class="my-1"
-            :color="selectedCategories.includes(category) ? 'primary' : 'default'"
+            class="mb-2"
+            :color="selectedCategories.includes(category) ? 'primary' : 'grey-lighten-3'"
             @click="toggleCategory(category)"
-            :variant="selectedCategories.includes(category) ? 'elevated' : 'flat'"
+            variant="flat"
             block
-            toggle
-            :style="!selectedCategories.includes(category) ? 'background-color: white;' : ''"
           >
             {{ category || 'ไม่ระบุหมวดหมู่' }}
           </v-btn>
         </div>
-        <v-btn v-if="selectedCategories.length" class="mt-4" color="error" @click="clearSelection" block>ล้างการเลือก</v-btn>
+        <v-btn 
+          v-if="selectedCategories.length" 
+          class="mt-3" 
+          color="error" 
+          variant="tonal" 
+          @click="clearSelection" 
+          block
+        >
+          ล้างการเลือก
+        </v-btn>
       </v-card>
     </v-col>
     <v-col cols="9" class="pa-4 manage-scrollable-col">
@@ -77,7 +86,7 @@
       <!-- category card -->
       <v-row v-else>
         <v-col cols="12" v-for="([category, items]) in sortedCategoryEntries" :key="category">
-          <v-card class="bg-blue-grey-lighten-5" outlined>
+          <v-card outlined>
             <v-card-title class="mt-1">{{ category }}</v-card-title>
 
             <!-- item card -->
@@ -148,17 +157,45 @@ const toggleDepleted = () => {
 
 const fetchItems = async () => {
   loading.value = true
+  error.value = null
+  const pageSize = 100; // increase page size to load more items at once
   try {
-    const res = await fetch(`${API_BASE_URL}/api/items?populate=*`, {
+    const res = await fetch(`${API_BASE_URL}/api/items?populate=*&pagination[page]=1&pagination[pageSize]=${pageSize}`, {
       headers: {
         Authorization: `Bearer ${API_BEARER_TOKEN}`
       }
     })
-    const data = await res.json()
-    console.log('Fetched items data:', data)
+    if (!res.ok) {
+      throw new Error(`Failed to fetch items: ${res.statusText}`);
+    }
+    const firstPageData = await res.json()
+    let allItems = firstPageData.data;
+    const pagination = firstPageData.meta.pagination;
+    
+    if (pagination.pageCount > 1) {
+      const pagePromises = [];
+      for (let page = 2; page <= pagination.pageCount; page++) {
+        pagePromises.push(
+          fetch(`${API_BASE_URL}/api/items?populate=*&pagination[page]=${page}&pagination[pageSize]=${pageSize}`, {
+            headers: {
+              Authorization: `Bearer ${API_BEARER_TOKEN}`
+            }
+          }).then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch page ${page}`);
+            return res.json();
+          })
+        );
+      }
+      const additionalPagesData = await Promise.all(pagePromises);
+      additionalPagesData.forEach(pageData => {
+        if (pageData && pageData.data) {
+          allItems = [...allItems, ...pageData.data];
+        }
+      });
+    }
     // Categorize items
     const categorized = {}
-    for (const item of data.data) {
+    for (const item of allItems) {
       const key = item.category ? item.category.replace(/\s+/g, '') : ''
       if (!categorized[key]) categorized[key] = []
       // Extract image URL if present
@@ -167,11 +204,11 @@ const fetchItems = async () => {
         // Use the first image, prefer thumbnail, then small, then original
         const img = item.imgpath[0]
         if (img.formats && img.formats.thumbnail && img.formats.thumbnail.url) {
-          imageUrl = `${API_BASE_URL}` + img.formats.thumbnail.url
+          imageUrl = `${API_BASE_URL}${img.formats.thumbnail.url}`
         } else if (img.formats && img.formats.small && img.formats.small.url) {
-          imageUrl = `${API_BASE_URL}` + img.formats.small.url
+          imageUrl = `${API_BASE_URL}${img.formats.small.url}`
         } else if (img.url) {
-          imageUrl = `${API_BASE_URL}` + img.url
+          imageUrl = `${API_BASE_URL}${img.url}`
         }
       }
       categorized[key].push({ ...item, imageUrl })
@@ -179,6 +216,7 @@ const fetchItems = async () => {
     itemsByCategory.value = categorized
   } catch (e) {
     error.value = e
+    console.error('Error fetching items:', e);
   } finally {
     loading.value = false
   }

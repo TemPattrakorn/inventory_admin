@@ -37,7 +37,7 @@
               <v-btn color="primary" type="submit" :loading="loading" block :disabled="!valid">บันทึก</v-btn>
             </v-col>
             <v-col cols="6">
-              <v-btn color="secondary" @click="onCancel" block>ยกเลิก</v-btn>
+              <v-btn variant="tonal" @click="onCancel" block>ยกเลิก</v-btn>
             </v-col>
           </v-row>
         </v-form>

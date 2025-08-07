@@ -22,7 +22,7 @@
     </v-btn>
   </v-app-bar>
 
-  <v-container class="mx-auto pa-4" style="max-width: 1280px;">
+  <v-container fluid class="mx-auto pa-4">
     <v-data-table
       :headers="headers"
       :items="users"
@@ -111,8 +111,7 @@
         <v-card-actions class="px-6 pb-6">
           <v-spacer></v-spacer>
           <v-btn 
-            color="grey" 
-            variant="outlined" 
+            variant="tonal" 
             :disabled="deleting" 
             @click="deleteDialog = false"
           >
@@ -144,9 +143,9 @@ const API_BASE_URL = config.public.apiUrl
 const API_BEARER_TOKEN = config.public.apiToken
 
 const headers = [
-  { title: 'Username', value: 'username', sortable: true },
-  { title: 'Email', value: 'email', sortable: true },
-  { title: 'Role', value: 'role', sortable: true },
+  { title: 'ชื่อผู้ใช้งาน', value: 'username', sortable: true },
+  { title: 'อีเมล', value: 'email', sortable: true },
+  { title: 'สิทธิ์การใช้งาน', value: 'role', sortable: true },
   { title: '', value: 'actions', sortable: false, align: 'end' },
 ]
 

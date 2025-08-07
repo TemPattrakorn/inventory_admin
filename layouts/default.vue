@@ -40,7 +40,8 @@
 
         <template v-slot:append>
           <div class="pa-2">
-            <v-btn block @click="logout">
+            <v-btn variant="tonal" block @click="logout">
+              <v-icon left class="mr-2">mdi-logout</v-icon>
               Logout
             </v-btn>
           </div>

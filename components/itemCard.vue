@@ -70,9 +70,8 @@
         
         <v-card-actions class="px-6 pb-6">
           <v-spacer />
-          <v-btn 
-            color="grey" 
-            variant="outlined" 
+          <v-btn  
+            variant="tonal" 
             @click="showDeleteDialog = false"
           >
             ยกเลิก
@@ -132,8 +131,7 @@
         <v-card-actions class="px-6 pb-6">
           <v-spacer />
           <v-btn 
-            color="grey" 
-            variant="outlined" 
+            variant="tonal" 
             @click="showAddDialog = false"
           >
             ยกเลิก

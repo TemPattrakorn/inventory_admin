@@ -1,20 +1,8 @@
 <template>
   <v-app-bar title="ประวัติการเบิกใช้">
-    <!-- Quick Clear Filters -->
     <v-btn
-      v-if="hasActiveFilters"
-      @click="clearFilters"
-      prepend-icon="mdi-filter-remove"
-      variant="text"
-      size="small"
-      color="grey-darken-1"
-    >
-      ล้างตัวกรอง
-    </v-btn>
-
-    <v-btn
-      @click="showFilters = !showFilters"
-      :prepend-icon="showFilters ? 'mdi-filter-off' : 'mdi-filter'"
+      @click="showAdvancedFilters = !showAdvancedFilters"
+      :prepend-icon="showAdvancedFilters ? 'mdi-filter-settings' : 'mdi-filter-plus'"
       variant="tonal"
       class="mr-4"
     >
@@ -28,167 +16,190 @@
       />
     </v-btn>
   </v-app-bar>
-
-  <!-- Collapsible Filter Section -->
+  
+  <!-- All Filters - Collapsible -->
   <v-expand-transition>
     <v-card 
-      v-show="showFilters" 
+      v-show="showAdvancedFilters" 
       class="mx-4 mt-4"
+      elevation="2"
     >
-      <v-card-title class="d-flex align-center py-3">
-        <v-icon class="mr-2">mdi-filter-variant</v-icon>
-        ตัวกรองข้อมูล
-        <v-spacer />
-        <v-btn
-          @click="showFilters = false"
-          icon="mdi-close"
-          variant="text"
-          size="small"
-        />
-      </v-card-title>
-      
-      <v-card-text class="pt-0">
-        <v-row>
-          <!-- User Filter -->
-          <v-col cols="12" md="6" lg="3">
-            <v-select
-              v-model="selectedUser"
-              :items="userOptions"
-              item-title="username"
-              item-value="id"
-              label="ผู้เบิก"
-              density="compact"
-              clearable
-              prepend-inner-icon="mdi-account"
-            />
-          </v-col>
-          
-          <!-- Category Filter -->
-          <v-col cols="12" md="6" lg="3">
-            <v-select
-              v-model="selectedCategory"
-              :items="categoryOptions"
-              item-title="title"
-              item-value="value"
-              label="หมวดหมู่"
-              density="compact"
-              clearable
-              prepend-inner-icon="mdi-tag"
-            />
-          </v-col>
-
-          <!-- Item Filter -->
-          <v-col cols="12" md="6" lg="4">
-            <v-autocomplete
-              v-model="selectedItem"
-              :items="filteredItemOptions"
-              item-title="name"
-              item-value="id"
-              label="รายการ"
-              density="compact"
-              clearable
-              placeholder="พิมพ์เพื่อค้นหา"
-              no-data-text="ไม่มีรายการในหมวดหมู่นี้"
-              prepend-inner-icon="mdi-package"
-            />
-          </v-col>
-
-          <!-- Status Filter -->
-          <v-col cols="12" md="6" lg="2">
-            <v-select
-              v-model="selectedStatus"
-              :items="statusOptions"
-              label="สถานะ"
-              density="compact"
-              clearable
-              prepend-inner-icon="mdi-information"
-            />
-          </v-col>
-        </v-row>
-
-        <v-row>
-          <!-- Start Date Filter -->
-          <v-col cols="12" md="6" lg="3">
-            <v-menu
-              v-model="startDateMenu"
-              :close-on-content-click="false"
-              transition="scale-transition"
-              offset-y
-              min-width="auto"
-            >
-              <template v-slot:activator="{ props }">
-                <v-text-field
-                  v-model="formattedStartDate"
-                  label="วันที่เริ่มต้น"
-                  prepend-inner-icon="mdi-calendar"
-                  readonly
-                  v-bind="props"
-                  density="compact"
-                  clearable
-                  @click:clear="startDate = null"
-                />
-              </template>
-              <v-date-picker
-                v-model="startDate"
-                @update:model-value="startDateMenu = false"
-                no-title
-                scrollable
+      <v-card-text class="pt-4">
+        <!-- Basic Filters -->
+        <div>
+          <h6 class="text-subtitle-2 text-grey-darken-2 mb-2">
+            <v-icon size="small" class="mr-1">mdi-filter</v-icon>
+            ผู้เบิก/สถานะการเบิก
+          </h6>
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-select
+                v-model="selectedUser"
+                :items="userOptions"
+                item-title="username"
+                item-value="id"
+                label="ผู้เบิก"
+                density="compact"
+                clearable
+                prepend-inner-icon="mdi-account"
+                variant="outlined"
               />
-            </v-menu>
-          </v-col>
-          
-          <!-- End Date Filter -->
-          <v-col cols="12" md="6" lg="3">
-            <v-menu
-              v-model="endDateMenu"
-              :close-on-content-click="false"
-              transition="scale-transition"
-              offset-y
-              min-width="auto"
-            >
-              <template v-slot:activator="{ props }">
-                <v-text-field
-                  v-model="formattedEndDate"
-                  label="วันที่สิ้นสุด"
-                  prepend-inner-icon="mdi-calendar"
-                  readonly
-                  v-bind="props"
-                  density="compact"
-                  clearable
-                  @click:clear="endDate = null"
-                />
-              </template>
-              <v-date-picker
-                v-model="endDate"
-                @update:model-value="endDateMenu = false"
-                no-title
-                scrollable
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-select
+                v-model="selectedStatus"
+                :items="statusOptions"
+                label="สถานะ"
+                density="compact"
+                clearable
+                prepend-inner-icon="mdi-information"
+                variant="outlined"
               />
-            </v-menu>
-          </v-col>
+            </v-col>
+            
+          </v-row>
+        </div>
 
-          <!-- Filter Actions -->
-          <v-col cols="12" lg="6" class="d-flex align-center justify-end">
-            <v-btn
-              v-if="hasActiveFilters"
-              @click="clearFilters"
-              prepend-icon="mdi-filter-remove"
-              variant="outlined"
-              color="grey"
-              class="mr-2"
-            >
-              ล้างตัวกรองทั้งหมด
-            </v-btn>
-            <v-btn
-              @click="showFilters = false"
-              prepend-icon="mdi-check"
-              color="primary"
-              variant="elevated"
-            >
-              ปิดตัวกรอง
-            </v-btn>
-          </v-col>
-        </v-row>
+        <!-- Items & Categories -->
+        <div>
+          <h6 class="text-subtitle-2 text-grey-darken-2 mb-2">
+            <v-icon size="small" class="mr-1">mdi-package-variant</v-icon>
+            รายการและหมวดหมู่
+          </h6>
+          <v-row>
+            
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="itemSearchText"
+                label="ค้นหารายการ"
+                density="compact"
+                clearable
+                placeholder="พิมพ์เพื่อค้นหาในรายการ"
+                prepend-inner-icon="mdi-package"
+                variant="outlined"
+              />
+            </v-col>
+
+            <v-col cols="12" md="6">
+              <v-select
+                v-model="selectedCategory"
+                :items="categoryOptions"
+                item-title="title"
+                item-value="value"
+                label="หมวดหมู่"
+                density="compact"
+                clearable
+                prepend-inner-icon="mdi-tag"
+                variant="outlined"
+              />
+            </v-col>
+
+          </v-row>
+        </div>
+
+        <!-- Date Filters -->
+        <div>
+          <v-row no-gutters>
+            <v-col class="d-flex align-center">
+              <div class="d-flex align-center">
+                <v-icon size="small" color="grey-darken-1" class="mr-2">mdi-calendar-range</v-icon>
+                <span class="text-subtitle-2 text-grey-darken-2">วันที่ขอเบิก</span>
+              </div>
+              <v-spacer />
+              <v-switch
+                v-model="isDateRangeMode"
+                label="ค้นหาแบบช่วงวันที่"
+                density="compact"
+                color="primary"
+                hide-details
+              />
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-menu
+                v-model="startDateMenu"
+                :close-on-content-click="false"
+                transition="scale-transition"
+                offset-y
+                min-width="auto"
+              >
+                <template v-slot:activator="{ props }">
+                  <v-text-field
+                    v-model="formattedStartDate"
+                    :label="isDateRangeMode ? 'วันที่เริ่มต้น' : 'เลือกวันที่'"
+                    prepend-inner-icon="mdi-calendar"
+                    readonly
+                    v-bind="props"
+                    density="compact"
+                    clearable
+                    variant="outlined"
+                    @click:clear="startDate = null"
+                  />
+                </template>
+                <v-date-picker
+                  v-model="startDate"
+                  @update:model-value="startDateMenu = false"
+                  no-title
+                  scrollable
+                />
+              </v-menu>
+            </v-col>
+            
+            <v-col v-if="isDateRangeMode" cols="12" md="6">
+              <v-menu
+                v-model="endDateMenu"
+                :close-on-content-click="false"
+                transition="scale-transition"
+                offset-y
+                min-width="auto"
+              >
+                <template v-slot:activator="{ props }">
+                  <v-text-field
+                    v-model="formattedEndDate"
+                    label="วันที่สิ้นสุด"
+                    prepend-inner-icon="mdi-calendar"
+                    readonly
+                    v-bind="props"
+                    density="compact"
+                    clearable
+                    variant="outlined"
+                    @click:clear="endDate = null"
+                  />
+                </template>
+                <v-date-picker
+                  v-model="endDate"
+                  @update:model-value="endDateMenu = false"
+                  no-title
+                  scrollable
+                />
+              </v-menu>
+            </v-col>
+          </v-row>
+        </div>
+
+
+
+        <!-- Filter Actions -->
+        <div class="d-flex justify-end">
+          <v-btn
+            v-if="hasActiveFilters"
+            @click="clearFilters"
+            prepend-icon="mdi-filter-remove"
+            variant="tonal"
+            class="mr-2"
+          >
+            ล้างตัวกรองทั้งหมด
+          </v-btn>
+          <v-btn
+            @click="showAdvancedFilters = false"
+            prepend-icon="mdi-chevron-up"
+            color="primary"
+            variant="tonal"
+          >
+            ย่อตัวกรอง
+          </v-btn>
+        </div>
       </v-card-text>
     </v-card>
   </v-expand-transition>
@@ -226,11 +237,6 @@
     <v-row v-else>
       <v-col cols="12">
         <v-card>
-          <v-card-title class="d-flex align-center">
-            <v-icon class="mr-2">mdi-history</v-icon>
-            ประวัติการเบิกใช้ ({{ filteredRequisitions.length }} รายการ)
-          </v-card-title>
-          
           <v-data-table
             :headers="headers"
             :items="filteredRequisitions"
@@ -250,7 +256,7 @@
             <!-- Created Date Column -->
             <template v-slot:item.createdAt="{ item }">
               <v-chip 
-                size="small"
+                
               >
                 {{ formatDate(item.createdAt) }}
               </v-chip>
@@ -260,14 +266,14 @@
             <template v-slot:item.pickupCancelTime="{ item }">
               <v-chip 
                 v-if="item.reqstatus === 'completed' && item.pickupTime" 
-                size="small" 
+                
                 color="blue"
               >
                 {{ formatDate(item.pickupTime) }}
               </v-chip>
               <v-chip 
                 v-else-if="item.reqstatus === 'cancelled' && item.cancelTime" 
-                size="small" 
+                
                 color="red"
               >
                 {{ formatDate(item.cancelTime) }}
@@ -329,14 +335,14 @@
             </v-col>
             <v-col cols="6">
               <v-list-item>
-                <v-list-item-title class="text-caption">ผู้เบิก</v-list-item-title>
+                <v-list-item-title class="text-caption">ผู้ขอเบิก</v-list-item-title>
                 <v-list-item-subtitle>{{ selectedRequisition.inventory_user?.username }}</v-list-item-subtitle>
                 <v-list-item-subtitle>{{ selectedRequisition.inventory_user?.email }}</v-list-item-subtitle>
               </v-list-item>
             </v-col>
             <v-col cols="6">
               <v-list-item>
-                <v-list-item-title class="text-caption">วันที่สร้าง</v-list-item-title>
+                <v-list-item-title class="text-caption">วันที่ขอเบิก</v-list-item-title>
                 <v-list-item-subtitle>{{ formatDate(selectedRequisition.createdAt) }}</v-list-item-subtitle>
               </v-list-item>
             </v-col>
@@ -385,7 +391,7 @@
           </v-list>
 
           <div v-if="selectedRequisition.reqDescription" class="mt-4">
-            <div class="text-h6 mb-2">หมายเหตุ</div>
+            <div class="text-h6 mb-2">เพื่อใช้ในงาน</div>
             <div class="text-body-2 bg-grey-lighten-4 pa-3 rounded">
               {{ selectedRequisition.reqDescription }}
             </div>
@@ -397,7 +403,7 @@
             <v-btn
               prepend-icon="mdi-check"
               class="mr-2"
-              color="blue"
+              color="primary"
               variant="elevated"
               @click="markAsReceived(selectedRequisition)"
               :loading="actionLoading"
@@ -415,7 +421,8 @@
               ยกเลิกการเบิก
             </v-btn>
             <v-btn
-            color="primary"
+            class="mr-4"
+            variant="tonal"
             @click="showDetailsDialog = false"
             >
               ปิด
@@ -442,7 +449,7 @@ const API_BEARER_TOKEN = config.public.apiToken
 // Reactive data
 const requisitions = ref([])
 const users = ref([])
-const items = ref([])
+
 const loading = ref(true)
 const error = ref(null)
 
@@ -450,12 +457,14 @@ const error = ref(null)
 const selectedStatus = ref(null)
 const selectedUser = ref(null)
 const selectedCategory = ref(null)
-const selectedItem = ref(null)
+const itemSearchText = ref("")
 const startDate = ref(null)
 const endDate = ref(null)
 const startDateMenu = ref(false)
 const endDateMenu = ref(false)
-const showFilters = ref(false)
+const isDateRangeMode = ref(false)
+
+const showAdvancedFilters = ref(false)
 const showDetailsDialog = ref(false)
 const selectedRequisition = ref(null)
 const actionLoading = ref(false)
@@ -468,9 +477,9 @@ const statusOptions = ref([
 ])
 
 const headers = ref([
-  { title: 'ผู้เบิก', key: 'inventory_user', width: '200px' },
   { title: 'วันที่ขอเบิก', key: 'createdAt', width: '150px' },
   { title: 'วันที่รับ/วันที่ยกเลิก', key: 'pickupCancelTime', width: '180px' },
+  { title: 'ชื่อผู้ขอเบิก', key: 'inventory_user', width: '200px' },
   { title: 'รายการ', key: 'requisition_items', width: '300px' },
   { title: 'สถานะการเบิก', key: 'reqstatus', width: '140px' },
   { title: '', key: 'actions', width: '100px', sortable: false }
@@ -505,32 +514,10 @@ const categoryOptions = computed(() => {
     }))
 })
 
-const filteredItemOptions = computed(() => {
-  let itemsToShow = items.value
-  
-  // If category is selected, filter items by category
-  if (selectedCategory.value) {
-    // Get all items from requisitions that match the selected category
-    const categoryItems = new Set()
-    requisitions.value.forEach(req => {
-      req.requisition_items?.forEach(reqItem => {
-        if (reqItem.item?.category === selectedCategory.value) {
-          categoryItems.add(reqItem.item.id)
-        }
-      })
-    })
-    itemsToShow = items.value.filter(item => categoryItems.has(item.id))
-  }
-  
-  return itemsToShow.map(item => ({
-    id: item.id,
-    name: item.name,
-    category: item.category
-  }))
-})
+
 
 const hasActiveFilters = computed(() => 
-  selectedStatus.value || selectedUser.value || selectedCategory.value || selectedItem.value || startDate.value || endDate.value
+  selectedStatus.value || selectedUser.value || selectedCategory.value || itemSearchText.value || startDate.value || endDate.value
 )
 
 const activeFilterCount = computed(() => {
@@ -538,7 +525,7 @@ const activeFilterCount = computed(() => {
   if (selectedStatus.value) count++
   if (selectedUser.value) count++
   if (selectedCategory.value) count++
-  if (selectedItem.value) count++
+  if (itemSearchText.value) count++
   if (startDate.value) count++
   if (endDate.value) count++
   return count
@@ -563,6 +550,8 @@ const formattedEndDate = computed(() => {
   return `${day}/${month}/${year}`
 })
 
+
+
 const filteredRequisitions = computed(() => {
   let filtered = [...requisitions.value]
 
@@ -583,38 +572,46 @@ const filteredRequisitions = computed(() => {
     )
   }
 
-  // Item filter
-  if (selectedItem.value) {
+  // Item search filter
+  if (itemSearchText.value) {
+    const searchText = itemSearchText.value.toLowerCase()
     filtered = filtered.filter(req => 
-      req.requisition_items?.some(ri => ri.item?.id === selectedItem.value)
+      req.requisition_items?.some(ri => 
+        ri.item?.name?.toLowerCase().includes(searchText)
+      )
     )
   }
 
-  // Date range filter
-  if (startDate.value || endDate.value) {
+  // Date filter (single day or range)
+  if (startDate.value) {
     filtered = filtered.filter(req => {
       if (!req.createdAt) return false
       
       const reqDate = new Date(req.createdAt)
       const reqDateOnly = new Date(reqDate.getFullYear(), reqDate.getMonth(), reqDate.getDate())
+      const start = new Date(startDate.value)
+      const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate())
       
-      // Check start date
-      if (startDate.value) {
-        const start = new Date(startDate.value)
-        const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+      if (!isDateRangeMode.value) {
+        // Single day mode - exact match
+        return reqDateOnly.getTime() === startDateOnly.getTime()
+      } else {
+        // Range mode
         if (reqDateOnly < startDateOnly) return false
+        
+        // Check end date if in range mode and end date is set
+        if (endDate.value) {
+          const end = new Date(endDate.value)
+          const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+          if (reqDateOnly > endDateOnly) return false
+        }
+        
+        return true
       }
-      
-      // Check end date
-      if (endDate.value) {
-        const end = new Date(endDate.value)
-        const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
-        if (reqDateOnly > endDateOnly) return false
-      }
-      
-      return true
     })
   }
+
+
 
   return filtered
 })
@@ -652,39 +649,7 @@ const fetchUsers = async () => {
   }
 }
 
-const fetchItems = async () => {
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/items?populate=*`, {
-      headers: {
-        Authorization: `Bearer ${API_BEARER_TOKEN}`
-      }
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to fetch items')
-    
-    // Process items to extract image URLs (same pattern as manage/index.vue)
-    const processedItems = data.data?.map(item => {
-      let imageUrl = null
-      if (item.imgpath && Array.isArray(item.imgpath) && item.imgpath.length > 0) {
-        // Use the first image, prefer thumbnail, then small, then original
-        const img = item.imgpath[0]
-        if (img.formats && img.formats.thumbnail && img.formats.thumbnail.url) {
-          imageUrl = `${API_BASE_URL}` + img.formats.thumbnail.url
-        } else if (img.formats && img.formats.small && img.formats.small.url) {
-          imageUrl = `${API_BASE_URL}` + img.formats.small.url
-        } else if (img.url) {
-          imageUrl = `${API_BASE_URL}` + img.url
-        }
-      }
-      return { ...item, imageUrl }
-    }) || []
-    
-    items.value = processedItems
-  } catch (e) {
-    console.error('Error fetching items:', e)
-    throw e
-  }
-}
+
 
 const fetchAllData = async () => {
   loading.value = true
@@ -693,8 +658,7 @@ const fetchAllData = async () => {
   try {
     await Promise.all([
       fetchRequisitions(),
-      fetchUsers(),
-      fetchItems()
+      fetchUsers()
     ])
   } catch (e) {
     error.value = e
@@ -735,16 +699,26 @@ const formatDate = (dateString) => {
 }
 
 const getItemImage = (item) => {
-  // Check if item has imageUrl from processed items data
-  if (item?.id) {
-    const foundItem = items.value.find(i => i.id === item.id)
-    if (foundItem?.imageUrl) {
-      return foundItem.imageUrl
-    }
-  }
-  
   // Fallback to placeholder image
   return '/No_image_available.png'
+}
+
+// Helper functions for chip display names
+const getCategoryDisplayName = (categoryValue) => {
+  const category = categoryOptions.value.find(cat => cat.value === categoryValue)
+  return category ? category.title : categoryValue
+}
+
+
+
+const getStatusDisplayName = (statusValue) => {
+  const status = statusOptions.value.find(status => status.value === statusValue)
+  return status ? status.title : statusValue
+}
+
+const getUserDisplayName = (userId) => {
+  const user = userOptions.value.find(user => user.id === userId)
+  return user ? user.username : 'Unknown User'
 }
 
 // Action Functions
@@ -867,23 +841,17 @@ const clearFilters = () => {
   selectedStatus.value = null
   selectedUser.value = null
   selectedCategory.value = null
-  selectedItem.value = null
+  itemSearchText.value = ""
   startDate.value = null
   endDate.value = null
   startDateMenu.value = false
   endDateMenu.value = false
+  isDateRangeMode.value = false
+
+  showAdvancedFilters.value = false
 }
 
-// Clear item selection when category changes to avoid invalid combinations
-watch(selectedCategory, (newCategory, oldCategory) => {
-  if (newCategory !== oldCategory && selectedItem.value) {
-    // Check if the currently selected item is still valid in the new category
-    const isItemValidInCategory = filteredItemOptions.value.some(item => item.id === selectedItem.value)
-    if (!isItemValidInCategory) {
-      selectedItem.value = null
-    }
-  }
-})
+
 
 const showDetails = (requisition) => {
   selectedRequisition.value = requisition
