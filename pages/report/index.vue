@@ -18,7 +18,7 @@
     <v-card class="mb-4">
       <v-card-title class="d-flex align-center">
         <v-icon class="mr-2">mdi-calendar-range</v-icon>
-        เลือกช่วงเวลา
+        เลือกช่วงวันที่
       </v-card-title>
       <v-card-text>
         <v-row>
@@ -180,6 +180,7 @@ definePageMeta({ middleware: 'auth' })
 // Imports
 import { ref, onMounted, computed } from 'vue'
 import { useRuntimeConfig } from '#app'
+import { formatDateThai, formatThaiMonthYear, getThaiMonthName } from '~/utils/date'
 
 // Configuration
 const config = useRuntimeConfig()
@@ -207,18 +208,18 @@ const endDateMenu = ref(false)
 
 // Static data
 const monthOptions = ref([
-  { label: 'มกราคม', value: 1 },
-  { label: 'กุมภาพันธ์', value: 2 },
-  { label: 'มีนาคม', value: 3 },
-  { label: 'เมษายน', value: 4 },
-  { label: 'พฤษภาคม', value: 5 },
-  { label: 'มิถุนายน', value: 6 },
-  { label: 'กรกฎาคม', value: 7 },
-  { label: 'สิงหาคม', value: 8 },
-  { label: 'กันยายน', value: 9 },
-  { label: 'ตุลาคม', value: 10 },
-  { label: 'พฤศจิกายน', value: 11 },
-  { label: 'ธันวาคม', value: 12 }
+  { label: 'ม.ค.', longLabel: 'มกราคม', value: 1 },
+  { label: 'ก.พ.', longLabel: 'กุมภาพันธ์', value: 2 },
+  { label: 'มี.ค.', longLabel: 'มีนาคม', value: 3 },
+  { label: 'เม.ย.', longLabel: 'เมษายน', value: 4 },
+  { label: 'พ.ค.', longLabel: 'พฤษภาคม', value: 5 },
+  { label: 'มิ.ย.', longLabel: 'มิถุนายน', value: 6 },
+  { label: 'ก.ค.', longLabel: 'กรกฎาคม', value: 7 },
+  { label: 'ส.ค.', longLabel: 'สิงหาคม', value: 8 },
+  { label: 'ก.ย.', longLabel: 'กันยายน', value: 9 },
+  { label: 'ต.ค.', longLabel: 'ตุลาคม', value: 10 },
+  { label: 'พ.ย.', longLabel: 'พฤศจิกายน', value: 11 },
+  { label: 'ธ.ค.', longLabel: 'ธันวาคม', value: 12 }
 ])
 
 // Computed properties
@@ -248,14 +249,14 @@ const monthColumns = computed(() => {
     const month = current.getMonth() + 1
     const monthData = monthOptions.value.find(m => m.value === month)
     
-    let label = `${monthData.label} ${year}`
+    let label = `${monthData.longLabel} ${new Intl.DateTimeFormat('th-TH-u-ca-buddhist', { year: 'numeric' }).format(new Date(year, 0, 1))}`
     let columnStart = new Date(current)
     let columnEnd = new Date(year, month - 1 + 1, 0) // Last day of current month
     
     // Check if this is the first month and doesn't start on the 1st
     if (current.getTime() === new Date(start.getFullYear(), start.getMonth(), 1).getTime() && !isFirstDayOfMonth(start)) {
       columnStart = new Date(start)
-      label = `${start.getDate()} ${monthData.label} ${year}`
+      label = `${start.getDate()} ${monthData.longLabel} ${new Intl.DateTimeFormat('th-TH-u-ca-buddhist', { year: 'numeric' }).format(new Date(year, 0, 1))}`
     }
     
     // Check if this is the last month and doesn't end on the last day
@@ -263,10 +264,10 @@ const monthColumns = computed(() => {
       columnEnd = new Date(end)
       if (current.getTime() === new Date(start.getFullYear(), start.getMonth(), 1).getTime() && !isFirstDayOfMonth(start)) {
         // Both partial start and end in same month
-        label = `${start.getDate()}-${end.getDate()} ${monthData.label} ${year}`
+        label = `${start.getDate()}-${end.getDate()} ${monthData.longLabel} ${new Intl.DateTimeFormat('th-TH-u-ca-buddhist', { year: 'numeric' }).format(new Date(year, 0, 1))}`
       } else {
         // Just partial end
-        label = `${end.getDate()} ${monthData.label} ${year}`
+        label = `${end.getDate()} ${monthData.longLabel} ${new Intl.DateTimeFormat('th-TH-u-ca-buddhist', { year: 'numeric' }).format(new Date(year, 0, 1))}`
       }
     }
     
@@ -287,23 +288,9 @@ const monthColumns = computed(() => {
 })
 
 // Computed properties for formatted dates
-const formattedStartDate = computed(() => {
-  if (!startDate.value) return ''
-  const date = new Date(startDate.value)
-  const day = date.getDate().toString().padStart(2, '0')
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  const year = date.getFullYear()
-  return `${day}/${month}/${year}`
-})
+const formattedStartDate = computed(() => formatDateThai(startDate.value, 'short'))
 
-const formattedEndDate = computed(() => {
-  if (!endDate.value) return ''
-  const date = new Date(endDate.value)
-  const day = date.getDate().toString().padStart(2, '0')
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  const year = date.getFullYear()
-  return `${day}/${month}/${year}`
-})
+const formattedEndDate = computed(() => formatDateThai(endDate.value, 'short'))
 
 // API Functions
 const fetchItems = async () => {
@@ -473,12 +460,7 @@ const formatDateRange = () => {
   const start = new Date(startDate.value)
   const end = new Date(endDate.value)
   
-  const formatDate = (date) => {
-    const day = date.getDate()
-    const monthLabel = monthOptions.value.find(m => m.value === date.getMonth() + 1)?.label
-    const year = date.getFullYear()
-    return `${day} ${monthLabel} ${year}`
-  }
+  const formatDate = (date) => formatDateThai(date, 'long')
   
   // Same date
   if (start.getTime() === end.getTime()) {

@@ -440,6 +440,7 @@ definePageMeta({ middleware: 'auth' })
 // Imports
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRuntimeConfig } from '#app'
+import { formatDateTimeThai, formatDateThai } from '~/utils/date'
 
 // Configuration
 const config = useRuntimeConfig()
@@ -532,23 +533,9 @@ const activeFilterCount = computed(() => {
 })
 
 // Computed properties for formatted dates
-const formattedStartDate = computed(() => {
-  if (!startDate.value) return ''
-  const date = new Date(startDate.value)
-  const day = date.getDate().toString().padStart(2, '0')
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  const year = date.getFullYear()
-  return `${day}/${month}/${year}`
-})
+const formattedStartDate = computed(() => formatDateThai(startDate.value, 'short'))
 
-const formattedEndDate = computed(() => {
-  if (!endDate.value) return ''
-  const date = new Date(endDate.value)
-  const day = date.getDate().toString().padStart(2, '0')
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  const year = date.getFullYear()
-  return `${day}/${month}/${year}`
-})
+const formattedEndDate = computed(() => formatDateThai(endDate.value, 'short'))
 
 
 
@@ -619,7 +606,7 @@ const filteredRequisitions = computed(() => {
 // API Functions
 const fetchRequisitions = async () => {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/requisitions?populate[inventory_user]=*&populate[requisition_items][populate]=item`, {
+    const res = await fetch(`${API_BASE_URL}/api/requisitions?populate[inventory_user]=*&populate[requisition_items][populate][item][populate]=imgpath`, {
       headers: {
         Authorization: `Bearer ${API_BEARER_TOKEN}`
       }
@@ -686,20 +673,15 @@ const getStatusText = (status) => {
   }
 }
 
-const formatDate = (dateString) => {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  const day = date.getDate().toString().padStart(2, '0')
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  const year = date.getFullYear()
-  const hours = date.getHours().toString().padStart(2, '0')
-  const minutes = date.getMinutes().toString().padStart(2, '0')
-  
-  return `${day}/${month}/${year} ${hours}:${minutes}`
-}
+const formatDate = (dateString) => formatDateTimeThai(dateString)
 
 const getItemImage = (item) => {
-  // Fallback to placeholder image
+  const thumbnailUrl = item?.imgpath?.[0]?.formats?.thumbnail?.url
+  if (thumbnailUrl) return `${API_BASE_URL}${thumbnailUrl}`
+
+  const originalUrl = item?.imgpath?.[0]?.url
+  if (originalUrl) return `${API_BASE_URL}${originalUrl}`
+
   return '/No_image_available.png'
 }
 

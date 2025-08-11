@@ -1,0 +1,265 @@
+// Inventory Management System Database Schema
+// Generated from Nuxt.js Admin Application Analysis
+
+Project inventory_management_system {
+  database_type: 'PostgreSQL'
+  Note: '''
+    # Inventory Management System Database
+    A comprehensive database schema for the Department of Mathematics and Computer Science
+    inventory management system built with Strapi CMS backend.
+    
+    ## Key Features:
+    - User role-based access control
+    - Inventory item management with categories
+    - Material requisition workflow
+    - Stock level tracking and alerts
+    - Historical reporting and analytics
+  '''
+}
+
+// Core User Management
+Table inventory_users {
+  id integer [primary key, increment]
+  documentId varchar(255) [unique, not null, note: 'Strapi document ID']
+  username varchar(255) [not null]
+  email varchar(255) [unique, not null]
+  role varchar(50) [not null, default: 'user', note: 'admin or user']
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  publishedAt timestamp
+  createdBy integer
+  updatedBy integer
+  
+  Note: 'System users including staff and administrators'
+  Indexes {
+    email [unique]
+    role
+    documentId [unique]
+  }
+}
+
+// Inventory Items Management
+Table items {
+  id integer [primary key, increment]
+  documentId varchar(255) [unique, not null, note: 'Strapi document ID']
+  name varchar(255) [not null, note: 'Item name in Thai']
+  unit varchar(50) [not null, note: 'Unit of measurement (e.g., ชิ้น, กิโลกรัม)']
+  category varchar(255) [note: 'Item category for organization']
+  stockqnt integer [not null, default: 0, note: 'Current stock quantity']
+  minqnt integer [not null, default: 0, note: 'Minimum stock threshold for alerts']
+  description text [note: 'Optional item description']
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  publishedAt timestamp
+  createdBy integer
+  updatedBy integer
+  
+  Note: 'Inventory items with stock tracking and categorization'
+  Indexes {
+    name
+    category
+    stockqnt
+    minqnt
+    documentId [unique]
+  }
+}
+
+// File Management for Item Images
+Table files {
+  id integer [primary key, increment]
+  documentId varchar(255) [unique, not null]
+  name varchar(255) [not null]
+  alternativeText varchar(255)
+  caption varchar(255)
+  width integer
+  height integer
+  formats json [note: 'Thumbnail, small, medium formats with URLs']
+  hash varchar(255) [not null]
+  ext varchar(10)
+  mime varchar(255) [not null]
+  size decimal(10,2) [not null]
+  url varchar(500) [not null]
+  previewUrl varchar(500)
+  provider varchar(255) [not null, default: 'local']
+  provider_metadata json
+  folderPath varchar(500)
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  createdBy integer
+  updatedBy integer
+  
+  Note: 'File storage for item images with multiple format support'
+  Indexes {
+    hash
+    provider
+    documentId [unique]
+  }
+}
+
+// Many-to-many relationship for item images
+Table items_imgpath_links {
+  id integer [primary key, increment]
+  item_id integer [ref: > items.id]
+  file_id integer [ref: > files.id]
+  item_order integer
+  file_order integer
+  
+  Note: 'Junction table linking items to their image files'
+  Indexes {
+    (item_id, file_id) [unique]
+    item_order
+    file_order
+  }
+}
+
+// Material Requisitions
+Table requisitions {
+  id integer [primary key, increment]
+  documentId varchar(255) [unique, not null, note: 'Strapi document ID']
+  reqstatus varchar(50) [not null, default: 'awaitPickup', note: 'awaitPickup, completed, cancelled']
+  reqDescription text [note: 'Purpose of requisition request']
+  pickupTime timestamp [note: 'When items were picked up (if completed)']
+  cancelTime timestamp [note: 'When requisition was cancelled']
+  inventory_user_id integer [ref: > inventory_users.id, not null]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  publishedAt timestamp
+  createdBy integer
+  updatedBy integer
+  
+  Note: 'Material requisition requests with workflow status tracking'
+  Indexes {
+    reqstatus
+    inventory_user_id
+    createdAt
+    pickupTime
+    documentId [unique]
+  }
+}
+
+// Individual Items within Requisitions
+Table requisition_items {
+  id integer [primary key, increment]
+  documentId varchar(255) [unique, not null, note: 'Strapi document ID']
+  quantity integer [not null, note: 'Requested quantity of the item']
+  item_id integer [ref: > items.id, not null]
+  requisition_id integer [ref: > requisitions.id, not null]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  publishedAt timestamp
+  createdBy integer
+  updatedBy integer
+  
+  Note: 'Individual items within a requisition with quantities'
+  Indexes {
+    item_id
+    requisition_id
+    documentId [unique]
+  }
+}
+
+// Strapi Core Tables (for completeness)
+Table strapi_users {
+  id integer [primary key, increment]
+  username varchar(255)
+  email varchar(255) [unique]
+  provider varchar(255) [default: 'local']
+  password varchar(255)
+  resetPasswordToken varchar(255)
+  confirmationToken varchar(255)
+  confirmed boolean [default: false]
+  blocked boolean [default: false]
+  role_id integer
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  
+  Note: 'Strapi admin users (different from inventory_users)'
+}
+
+Table strapi_api_tokens {
+  id integer [primary key, increment]
+  name varchar(255)
+  description varchar(255)
+  type varchar(255)
+  accessKey varchar(255) [unique]
+  lastUsedAt timestamp
+  permissions json
+  expiresAt timestamp
+  lifespan bigint
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  createdBy integer
+  updatedBy integer
+  
+  Note: 'API tokens for system access authentication'
+}
+
+// Relationships Documentation
+Ref: requisitions.inventory_user_id > inventory_users.id [note: 'User who made the requisition']
+Ref: requisition_items.item_id > items.id [note: 'Item being requested']
+Ref: requisition_items.requisition_id > requisitions.id [note: 'Parent requisition']
+Ref: items_imgpath_links.item_id > items.id [note: 'Item with images']
+Ref: items_imgpath_links.file_id > files.id [note: 'Image files for items']
+
+// Enum documentation
+Enum requisition_status {
+  awaitPickup [note: 'Waiting for user to pick up approved items']
+  completed [note: 'Items have been picked up by user']
+  cancelled [note: 'Requisition was cancelled and stock restored']
+}
+
+Enum user_role {
+  admin [note: 'System administrator with full access']
+  user [note: 'Regular staff member who can request materials']
+}
+
+// Table Groups for better organization
+TableGroup "User Management" {
+  inventory_users
+  strapi_users
+  strapi_api_tokens
+}
+
+TableGroup "Inventory Management" {
+  items
+  files
+  items_imgpath_links
+}
+
+TableGroup "Requisition System" {
+  requisitions
+  requisition_items
+}
+
+// Additional Notes
+Note business_rules {
+  '''
+  ## Business Rules and Constraints:
+  
+  1. **Stock Management**:
+     - Stock quantity cannot go below 0
+     - System generates alerts when stockqnt <= minqnt
+     - Stock is automatically reduced when requisitions are approved
+     - Stock is restored when requisitions are cancelled
+  
+  2. **Requisition Workflow**:
+     - Only users with 'admin' role can process requisitions
+     - Regular users can only view their own requisition history
+     - Requisitions start with status 'awaitPickup'
+     - Stock is reserved immediately when requisition is created
+  
+  3. **File Management**:
+     - Items can have multiple images through junction table
+     - Images are stored with multiple formats (thumbnail, small, medium)
+     - Original files are preserved with metadata
+  
+  4. **User Roles**:
+     - 'admin': Full system access, can manage inventory and process requisitions
+     - 'user': Can browse items and create requisitions only
+  
+  5. **Authentication**:
+     - Users authenticate via Google OAuth
+     - User profiles are validated against inventory_users table
+     - Only users with existing profiles can access the system
+  '''
+}

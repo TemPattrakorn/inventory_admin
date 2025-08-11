@@ -114,6 +114,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRuntimeConfig } from '#app'
+import { formatDateTimeThai } from '~/utils/date'
 import ItemCard from '~/components/mainpage/itemCard.vue'
 
 definePageMeta({ middleware: 'auth' })
@@ -192,10 +193,7 @@ const getItemImage = (item) => {
 const nearlyDepletedItems = computed(() => allItems.value.filter(item => item.stockqnt <= item.minqnt && item.stockqnt > 0).sort((a, b) => a.name.localeCompare(b.name, 'th')))
 const depletedItems = computed(() => allItems.value.filter(item => item.stockqnt === 0).sort((a, b) => a.name.localeCompare(b.name, 'th')))
 
-const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-}
+const formatDate = (dateString) => formatDateTimeThai(dateString)
 
 const markAsReceived = async (item) => {
   try {
