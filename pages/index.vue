@@ -59,7 +59,7 @@
               <span class="text-body-1 text-grey-darken-1">{{ nearlyDepletedItems.length }} รายการ</span>
             </v-card-title>
             <v-list v-if="!itemsLoading" style="overflow-y: auto;">
-              <ItemCard v-for="item in nearlyDepletedItems" :key="item.id" :item="item" :image-url="getItemImage(item)" @updated="fetchItems" @deleted="fetchItems" />
+              <ItemCard v-for="item in nearlyDepletedItems" :key="`nearly-${item.id}`" :item="item" :image-url="getItemImage(item)" @updated="handleItemUpdate" @deleted="handleItemDelete" />
               <v-list-item v-if="nearlyDepletedItems.length === 0"><v-list-item-title class="text-center text-grey-darken-1">ไม่มีวัสดุที่ใกล้หมด</v-list-item-title></v-list-item>
             </v-list>
             <div v-else class="d-flex justify-center align-center flex-grow-1"><v-progress-circular indeterminate color="primary"></v-progress-circular></div>
@@ -72,7 +72,7 @@
               <span class="text-body-1 text-grey-darken-1">{{ depletedItems.length }} รายการ</span>
             </v-card-title>
             <v-list v-if="!itemsLoading" style="overflow-y: auto;">
-              <ItemCard v-for="item in depletedItems" :key="item.id" :item="item" :image-url="getItemImage(item)" @updated="fetchItems" @deleted="fetchItems" />
+              <ItemCard v-for="item in depletedItems" :key="`depleted-${item.id}`" :item="item" :image-url="getItemImage(item)" @updated="handleItemUpdate" @deleted="handleItemDelete" />
               <v-list-item v-if="depletedItems.length === 0"><v-list-item-title class="text-center text-grey-darken-1">ไม่มีวัสดุที่หมด</v-list-item-title></v-list-item>
             </v-list>
             <div v-else class="d-flex justify-center align-center flex-grow-1"><v-progress-circular indeterminate color="primary"></v-progress-circular></div>
@@ -112,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRuntimeConfig } from '#app'
 import { formatDateTimeThai } from '~/utils/date'
 import ItemCard from '~/components/mainpage/itemCard.vue'
@@ -174,9 +174,57 @@ const fetchRequisitions = async () => {
 const fetchItems = async () => {
   itemsLoading.value = true
   try {
-    const res = await fetch(`${API_BASE_URL}/api/items?populate=imgpath`, { headers: { Authorization: `Bearer ${API_BEARER_TOKEN}` } })
-    const data = await res.json()
-    allItems.value = data.data
+    // Use pagination to ensure we get all items
+    const pageSize = 100
+    const res = await fetch(`${API_BASE_URL}/api/items?populate=imgpath&pagination[page]=1&pagination[pageSize]=${pageSize}`, { 
+      headers: { Authorization: `Bearer ${API_BEARER_TOKEN}` } 
+    })
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`)
+    }
+    
+    const firstPageData = await res.json()
+    let allItemsData = firstPageData.data
+    const pagination = firstPageData.meta.pagination
+    
+    // Fetch additional pages if needed
+    if (pagination.pageCount > 1) {
+      const pagePromises = []
+      for (let page = 2; page <= pagination.pageCount; page++) {
+        pagePromises.push(
+          fetch(`${API_BASE_URL}/api/items?populate=imgpath&pagination[page]=${page}&pagination[pageSize]=${pageSize}`, {
+            headers: { Authorization: `Bearer ${API_BEARER_TOKEN}` }
+          }).then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch page ${page}`)
+            return res.json()
+          })
+        )
+      }
+      
+      const additionalPagesData = await Promise.all(pagePromises)
+      additionalPagesData.forEach(pageData => {
+        if (pageData && pageData.data) {
+          allItemsData = [...allItemsData, ...pageData.data]
+        }
+      })
+    }
+    
+    // Ensure all items have proper numeric values
+    allItemsData = allItemsData.map(item => ({
+      ...item,
+      stockqnt: Number(item.stockqnt) || 0,
+      minqnt: Number(item.minqnt) || 0
+    }))
+    
+    allItems.value = allItemsData
+    console.log('Items fetched successfully:', allItems.value.length, 'items')
+    console.log('Sample items:', allItems.value.slice(0, 3).map(item => ({
+      name: item.name,
+      stockqnt: item.stockqnt,
+      minqnt: item.minqnt,
+      type: typeof item.stockqnt
+    })))
   } catch (e) {
     console.error('Error fetching items:', e)
   } finally {
@@ -190,8 +238,32 @@ const getItemImage = (item) => {
   return '/No_image_available.png'
 }
 
-const nearlyDepletedItems = computed(() => allItems.value.filter(item => item.stockqnt <= item.minqnt && item.stockqnt > 0).sort((a, b) => a.name.localeCompare(b.name, 'th')))
-const depletedItems = computed(() => allItems.value.filter(item => item.stockqnt === 0).sort((a, b) => a.name.localeCompare(b.name, 'th')))
+const nearlyDepletedItems = computed(() => {
+  const filtered = allItems.value.filter(item => {
+    // Ensure we have valid numeric values
+    const stockQnt = Number(item.stockqnt) || 0
+    const minQnt = Number(item.minqnt) || 0
+    
+    // Check if item is nearly depleted (stock <= min but > 0)
+    return stockQnt <= minQnt && stockQnt > 0
+  }).sort((a, b) => a.name.localeCompare(b.name, 'th'))
+  
+  console.log('Nearly depleted items:', filtered.length, 'items', filtered.map(item => `${item.name}: ${item.stockqnt}/${item.minqnt}`))
+  return filtered
+})
+
+const depletedItems = computed(() => {
+  const filtered = allItems.value.filter(item => {
+    // Ensure we have valid numeric values
+    const stockQnt = Number(item.stockqnt) || 0
+    
+    // Check if item is depleted (stock === 0)
+    return stockQnt === 0
+  }).sort((a, b) => a.name.localeCompare(b.name, 'th'))
+  
+  console.log('Depleted items:', filtered.length, 'items', filtered.map(item => `${item.name}: ${item.stockqnt}`))
+  return filtered
+})
 
 const formatDate = (dateString) => formatDateTimeThai(dateString)
 
@@ -232,8 +304,11 @@ const cancelRequisition = async (item) => {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${API_BEARER_TOKEN}` },
       body: JSON.stringify({ data: { reqstatus: "cancelled" } })
     })
-    if (response.ok) await fetchRequisitions()
-    else console.error('Failed to cancel requisition')
+    if (response.ok) {
+      await Promise.all([fetchRequisitions(), fetchItems()])
+    } else {
+      console.error('Failed to cancel requisition')
+    }
   } catch (error) {
     console.error('Error cancelling requisition:', error)
   }
@@ -250,6 +325,20 @@ const closeCancelDialog = () => {
   cancelLoading.value = false
 }
 
+const handleItemUpdate = async () => {
+  console.log('Item updated, refreshing data...')
+  await fetchItems()
+  // Force reactive update by triggering a small change
+  await new Promise(resolve => setTimeout(resolve, 100))
+}
+
+const handleItemDelete = async () => {
+  console.log('Item deleted, refreshing data...')
+  await fetchItems()
+  // Force reactive update by triggering a small change
+  await new Promise(resolve => setTimeout(resolve, 100))
+}
+
 const confirmCancelRequisition = async () => {
   if (!selectedItemToCancel.value) return
   cancelLoading.value = true
@@ -262,6 +351,28 @@ const confirmCancelRequisition = async () => {
     cancelLoading.value = false
   }
 }
+
+// Watch for changes in allItems to debug computed property updates
+watch(allItems, (newItems) => {
+  console.log('allItems changed, count:', newItems.length)
+  console.log('Nearly depleted count:', nearlyDepletedItems.value.length)
+  console.log('Depleted count:', depletedItems.value.length)
+  
+  // Debug: Show items that should be in each category
+  const nearlyDepletedDebug = newItems.filter(item => {
+    const stockQnt = Number(item.stockqnt) || 0
+    const minQnt = Number(item.minqnt) || 0
+    return stockQnt <= minQnt && stockQnt > 0
+  })
+  
+  const depletedDebug = newItems.filter(item => {
+    const stockQnt = Number(item.stockqnt) || 0
+    return stockQnt === 0
+  })
+  
+  console.log('Debug - Items that should be nearly depleted:', nearlyDepletedDebug.map(item => `${item.name}: ${item.stockqnt}/${item.minqnt}`))
+  console.log('Debug - Items that should be depleted:', depletedDebug.map(item => `${item.name}: ${item.stockqnt}`))
+}, { deep: true })
 
 onMounted(async () => {
   await Promise.all([fetchRequisitions(), fetchItems()])

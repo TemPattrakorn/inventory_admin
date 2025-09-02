@@ -32,7 +32,7 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'Inventory management system - CMS',
+      title: 'CMS - Inventory management system',
     }
   }
 })

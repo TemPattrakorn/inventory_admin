@@ -143,8 +143,12 @@ const config = useRuntimeConfig()
 const API_BASE_URL = config.public.apiUrl
 const API_BEARER_TOKEN = config.public.apiToken
 
-const isNearlyDepleted = computed(() => props.item.stockqnt <= props.item.minqnt && props.item.stockqnt > 0)
-const isDepleted = computed(() => props.item.stockqnt === 0)
+const isNearlyDepleted = computed(() => {
+  const stockQnt = Number(props.item.stockqnt)
+  const minQnt = Number(props.item.minqnt)
+  return stockQnt <= minQnt && stockQnt > 0
+})
+const isDepleted = computed(() => Number(props.item.stockqnt) === 0)
 
 const chipColor = computed(() => {
   if (isDepleted.value) return 'error'
@@ -166,7 +170,12 @@ const handleAddStock = async () => {
   if (!addAmount.value || addAmount.value <= 0) return
   loadingAdd.value = true
   try {
-    const newStock = Number(props.item.stockqnt) + Number(addAmount.value)
+    const currentStock = Number(props.item.stockqnt) || 0
+    const addAmountNum = Number(addAmount.value) || 0
+    const newStock = currentStock + addAmountNum
+    
+    console.log(`Updating stock for ${props.item.name}: ${currentStock} + ${addAmountNum} = ${newStock}`)
+    
     const response = await fetch(`${API_BASE_URL}/api/items/${props.item.documentId}`, {
       method: 'PUT',
       headers: {
@@ -175,9 +184,17 @@ const handleAddStock = async () => {
       },
       body: JSON.stringify({ data: { stockqnt: newStock } })
     })
-    if (!response.ok) throw new Error('Update failed')
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Update failed: ${response.status} - ${errorText}`)
+    }
+    
+    console.log(`Successfully updated stock for ${props.item.name} to ${newStock}`)
     showAddDialog.value = false
     addAmount.value = 0
+    
+    // Emit updated event to trigger parent refresh
     emit('updated')
   } catch (e) {
     console.error('Error adding stock:', e)
