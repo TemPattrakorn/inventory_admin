@@ -230,6 +230,33 @@ const handleAddStock = async () => {
     const updateResData = await res.clone().json().catch(() => null)
     console.log('Update item (add stock) response:', updateResData)
     if (!res.ok) throw new Error('Update failed')
+    
+    // Log the add stock history
+    try {
+      const logData = {
+        data: {
+          type: "add",
+          quantityChanged: Number(addAmount.value),
+          item: props.documentId
+        }
+      }
+      const logRes = await fetch(`${API_BASE_URL}/api/inventory-logs/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${API_BEARER_TOKEN}`
+        },
+        body: JSON.stringify(logData)
+      })
+      const logResData = await logRes.clone().json().catch(() => null)
+      console.log('Log add stock response:', logResData)
+      if (!logRes.ok) {
+        console.warn('Failed to log add stock history:', logResData)
+      }
+    } catch (logError) {
+      console.warn('Error logging add stock history:', logError)
+    }
+    
     showAddDialog.value = false
     emit('updated', props.documentId)
     addAmount.value = 0

@@ -123,19 +123,25 @@
           <table class="report-table">
             <thead>
               <tr>
-                <th class="sticky-column item-column">รายการ</th>
-                <th v-for="month in monthColumns" :key="month.key" class="month-header">
+                <th class="sticky-column item-column" rowspan="2">รายการ</th>
+                <th v-for="month in monthColumns" :key="month.key" class="month-header" colspan="2">
                   {{ month.label }}
                 </th>
-                <th class="summary-header">รวมเบิก</th>
-                <th class="stock-header">คงเหลือ</th>
+                <th class="summary-header" rowspan="2">รวมเบิก</th>
+                <th class="stock-header" rowspan="2">คงเหลือ</th>
+              </tr>
+              <tr>
+                <template v-for="month in monthColumns" :key="month.key">
+                  <th class="sub-header add-header">จำนวนที่เพิ่ม</th>
+                  <th class="sub-header req-header">จำนวนที่เบิก</th>
+                </template>
               </tr>
             </thead>
             <tbody>
               <template v-for="categoryData in reportData" :key="categoryData.category">
                 <!-- Category Header -->
                 <tr class="category-row">
-                  <td class="sticky-column category-cell" :colspan="monthColumns.length + 3">
+                  <td class="sticky-column category-cell" :colspan="(monthColumns.length * 2) + 3">
                     {{ categoryData.category || 'ไม่ระบุหมวดหมู่' }}
                   </td>
                 </tr>
@@ -155,9 +161,14 @@
                       </div>
                     </div>
                   </td>
-                  <td v-for="month in monthColumns" :key="month.key" class="data-cell acquisition-cell">
-                    {{ item.monthlyData[month.key]?.acquisition || 0 }}
-                  </td>
+                  <template v-for="month in monthColumns" :key="month.key">
+                    <td class="data-cell addition-cell">
+                      {{ item.monthlyData[month.key]?.addition || 0 }}
+                    </td>
+                    <td class="data-cell acquisition-cell">
+                      {{ item.monthlyData[month.key]?.acquisition || 0 }}
+                    </td>
+                  </template>
                   <td class="data-cell summary-cell">
                     {{ item.totalAcquisition }}
                   </td>
@@ -190,6 +201,7 @@ const API_BEARER_TOKEN = config.public.apiToken
 // Reactive data
 const items = ref([])
 const requisitions = ref([])
+const inventoryLogs = ref([])
 const reportData = ref([])
 const loading = ref(true)
 const error = ref(null)
@@ -295,16 +307,46 @@ const formattedEndDate = computed(() => formatDateThai(endDate.value, 'short'))
 // API Functions
 const fetchItems = async () => {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/items?populate=*`, {
+    // Use pagination to ensure we get all items
+    const pageSize = 100
+    const res = await fetch(`${API_BASE_URL}/api/items?populate=*&pagination[page]=1&pagination[pageSize]=${pageSize}`, {
       headers: {
         Authorization: `Bearer ${API_BEARER_TOKEN}`
       }
     })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to fetch items')
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`)
+    }
+    
+    const firstPageData = await res.json()
+    let allItemsData = firstPageData.data || []
+    const pagination = firstPageData.meta.pagination
+    
+    // Fetch additional pages if needed
+    if (pagination.pageCount > 1) {
+      const pagePromises = []
+      for (let page = 2; page <= pagination.pageCount; page++) {
+        pagePromises.push(
+          fetch(`${API_BASE_URL}/api/items?populate=*&pagination[page]=${page}&pagination[pageSize]=${pageSize}`, {
+            headers: { Authorization: `Bearer ${API_BEARER_TOKEN}` }
+          }).then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch page ${page}`)
+            return res.json()
+          })
+        )
+      }
+      
+      const additionalPagesData = await Promise.all(pagePromises)
+      additionalPagesData.forEach(pageData => {
+        if (pageData && pageData.data) {
+          allItemsData = [...allItemsData, ...pageData.data]
+        }
+      })
+    }
     
     // Process items to extract image URLs (same pattern as manage/index.vue)
-    const processedItems = data.data?.map(item => {
+    const processedItems = allItemsData.map(item => {
       let imageUrl = null
       if (item.imgpath && Array.isArray(item.imgpath) && item.imgpath.length > 0) {
         const img = item.imgpath[0]
@@ -317,9 +359,10 @@ const fetchItems = async () => {
         }
       }
       return { ...item, imageUrl }
-    }) || []
+    })
     
     items.value = processedItems
+    console.log('Items fetched successfully:', items.value.length, 'items')
   } catch (e) {
     console.error('Error fetching items:', e)
     throw e
@@ -328,16 +371,96 @@ const fetchItems = async () => {
 
 const fetchRequisitions = async () => {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/requisitions?populate[requisition_items][populate]=item&filters[reqstatus][$eq]=completed`, {
+    // Use pagination to ensure we get all completed requisitions
+    const pageSize = 100
+    const res = await fetch(`${API_BASE_URL}/api/requisitions?populate[requisition_items][populate]=item&filters[reqstatus][$eq]=completed&pagination[page]=1&pagination[pageSize]=${pageSize}`, {
       headers: {
         Authorization: `Bearer ${API_BEARER_TOKEN}`
       }
     })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to fetch requisitions')
-    requisitions.value = data.data || []
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`)
+    }
+    
+    const firstPageData = await res.json()
+    let allRequisitionsData = firstPageData.data || []
+    const pagination = firstPageData.meta.pagination
+    
+    // Fetch additional pages if needed
+    if (pagination.pageCount > 1) {
+      const pagePromises = []
+      for (let page = 2; page <= pagination.pageCount; page++) {
+        pagePromises.push(
+          fetch(`${API_BASE_URL}/api/requisitions?populate[requisition_items][populate]=item&filters[reqstatus][$eq]=completed&pagination[page]=${page}&pagination[pageSize]=${pageSize}`, {
+            headers: { Authorization: `Bearer ${API_BEARER_TOKEN}` }
+          }).then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch page ${page}`)
+            return res.json()
+          })
+        )
+      }
+      
+      const additionalPagesData = await Promise.all(pagePromises)
+      additionalPagesData.forEach(pageData => {
+        if (pageData && pageData.data) {
+          allRequisitionsData = [...allRequisitionsData, ...pageData.data]
+        }
+      })
+    }
+    
+    requisitions.value = allRequisitionsData
+    console.log('Requisitions fetched successfully:', requisitions.value.length, 'requisitions')
   } catch (e) {
     console.error('Error fetching requisitions:', e)
+    throw e
+  }
+}
+
+const fetchInventoryLogs = async () => {
+  try {
+    // Use pagination to ensure we get all inventory logs
+    const pageSize = 100
+    const res = await fetch(`${API_BASE_URL}/api/inventory-logs?populate=*&pagination[page]=1&pagination[pageSize]=${pageSize}`, {
+      headers: {
+        Authorization: `Bearer ${API_BEARER_TOKEN}`
+      }
+    })
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`)
+    }
+    
+    const firstPageData = await res.json()
+    let allLogsData = firstPageData.data || []
+    const pagination = firstPageData.meta.pagination
+    
+    // Fetch additional pages if needed
+    if (pagination.pageCount > 1) {
+      const pagePromises = []
+      for (let page = 2; page <= pagination.pageCount; page++) {
+        pagePromises.push(
+          fetch(`${API_BASE_URL}/api/inventory-logs?populate=*&pagination[page]=${page}&pagination[pageSize]=${pageSize}`, {
+            headers: { Authorization: `Bearer ${API_BEARER_TOKEN}` }
+          }).then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch page ${page}`)
+            return res.json()
+          })
+        )
+      }
+      
+      const additionalPagesData = await Promise.all(pagePromises)
+      additionalPagesData.forEach(pageData => {
+        if (pageData && pageData.data) {
+          allLogsData = [...allLogsData, ...pageData.data]
+        }
+      })
+    }
+    
+    inventoryLogs.value = allLogsData
+    console.log('Inventory logs fetched successfully:', inventoryLogs.value.length, 'logs')
+  } catch (e) {
+    console.error('Error fetching inventory logs:', e)
     throw e
   }
 }
@@ -349,7 +472,8 @@ const fetchAllData = async () => {
   try {
     await Promise.all([
       fetchItems(),
-      fetchRequisitions()
+      fetchRequisitions(),
+      fetchInventoryLogs()
     ])
     await generateReport()
   } catch (e) {
@@ -361,7 +485,7 @@ const fetchAllData = async () => {
 
 // Report generation
 const generateReport = async () => {
-  if (!items.value.length || !requisitions.value.length) return
+  if (!items.value.length || !requisitions.value.length || !inventoryLogs.value.length) return
   
   try {
     // Group items by category (similar to manage/index.vue)
@@ -372,8 +496,9 @@ const generateReport = async () => {
       itemsByCategory[key].push(item)
     }
 
-    // Calculate monthly acquisitions
+    // Calculate monthly acquisitions and additions
     const monthlyAcquisitions = calculateMonthlyAcquisitions()
+    const monthlyAdditions = calculateMonthlyAdditions()
 
     // Generate report structure
     const report = []
@@ -392,8 +517,10 @@ const generateReport = async () => {
           // Calculate data for each month column
           for (const monthCol of monthColumns.value) {
             const acquisition = monthlyAcquisitions[item.id]?.[monthCol.key] || 0
+            const addition = monthlyAdditions[item.id]?.[monthCol.key] || 0
             monthlyData[monthCol.key] = {
-              acquisition: acquisition
+              acquisition: acquisition,
+              addition: addition
             }
             totalAcquisition += acquisition
           }
@@ -453,6 +580,39 @@ const calculateMonthlyAcquisitions = () => {
   return acquisitions
 }
 
+const calculateMonthlyAdditions = () => {
+  const additions = {}
+  
+  for (const log of inventoryLogs.value) {
+    if (!log.createdAt || log.type !== 'add') continue
+    
+    const logDate = new Date(log.createdAt)
+    
+    // Find which column this log date belongs to
+    const matchingColumn = monthColumns.value.find(col => {
+      const colStart = new Date(col.startDate)
+      const colEnd = new Date(col.endDate)
+      
+      // Set time to compare dates only (not time)
+      const logDateOnly = new Date(logDate.getFullYear(), logDate.getMonth(), logDate.getDate())
+      const colStartOnly = new Date(colStart.getFullYear(), colStart.getMonth(), colStart.getDate())
+      const colEndOnly = new Date(colEnd.getFullYear(), colEnd.getMonth(), colEnd.getDate())
+      
+      return logDateOnly >= colStartOnly && logDateOnly <= colEndOnly
+    })
+    
+    if (!matchingColumn || !log.item) continue
+    
+    const itemId = log.item.id
+    if (!additions[itemId]) additions[itemId] = {}
+    if (!additions[itemId][matchingColumn.key]) additions[itemId][matchingColumn.key] = 0
+    
+    additions[itemId][matchingColumn.key] += log.quantityChanged
+  }
+  
+  return additions
+}
+
 // Utility functions
 const formatDateRange = () => {
   if (!startDate.value || !endDate.value) return ''
@@ -485,7 +645,8 @@ const exportToExcel = async () => {
     // Add headers
     const headers = ['รายการ', 'หน่วย']
     for (const month of monthColumns.value) {
-      headers.push(month.label)
+      headers.push(`${month.label} - จำนวนที่เพิ่ม`)
+      headers.push(`${month.label} - จำนวนที่เบิก`)
     }
     headers.push('รวมเบิก')
     headers.push('คงเหลือ')
@@ -501,6 +662,7 @@ const exportToExcel = async () => {
         const row = [item.name, item.unit]
         
         for (const month of monthColumns.value) {
+          row.push(item.monthlyData[month.key]?.addition || 0)
           row.push(item.monthlyData[month.key]?.acquisition || 0)
         }
         
@@ -524,7 +686,8 @@ const exportToExcel = async () => {
       { wch: 10 }, // หน่วย
     ]
     for (let i = 0; i < monthColumns.value.length; i++) {
-      colWidths.push({ wch: 12 }) // เบิก columns
+      colWidths.push({ wch: 12 }) // จำนวนที่เพิ่ม columns
+      colWidths.push({ wch: 12 }) // จำนวนที่เบิก columns
     }
     colWidths.push({ wch: 12 }) // รวมเบิก
     colWidths.push({ wch: 12 }) // คงเหลือ
@@ -588,11 +751,27 @@ onMounted(fetchAllData)
   background-color: #1976d2;
   color: white;
   font-weight: bold;
+  width: 200px;
+}
+
+.sub-header {
+  font-weight: bold;
+  font-size: 12px;
   width: 100px;
 }
 
-.summary-header {
+.add-header {
   background-color: #4caf50;
+  color: white;
+}
+
+.req-header {
+  background-color: #ff9800;
+  color: white;
+}
+
+.summary-header {
+  background-color: #ff9800;
   color: white;
   font-weight: bold;
   width: 100px;
@@ -629,14 +808,19 @@ onMounted(fetchAllData)
   font-weight: 500;
 }
 
+.addition-cell {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+}
+
 .acquisition-cell {
-  background-color: #e3f2fd;
-  color: #1976d2;
+  background-color: #fff3e0;
+  color: #f57c00;
 }
 
 .summary-cell {
-  background-color: #e8f5e8;
-  color: #2e7d32;
+  background-color: #fff3e0;
+  color: #f57c00;
   font-weight: bold;
 }
 

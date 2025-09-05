@@ -145,10 +145,13 @@ const onSubmit = async () => {
       })
     })
     const resData = await res.clone().json().catch(() => null)
-    console.log('Create item response:', resData)
     if (!res.ok) throw new Error('ไม่สามารถเพิ่มวัสดุใหม่ได้')
     const data = await res.json()
-    const newItemId = data.data.id
+    const newItemId = data.data?.documentId
+    
+    if (!newItemId) {
+      throw new Error('Failed to get item ID from server response')
+    }
 
     if (file.value) {
       const formData = new FormData()
@@ -165,8 +168,38 @@ const onSubmit = async () => {
         body: formData
       })
       const uploadResData = await uploadRes.clone().json().catch(() => null)
-      console.log('Upload image response:', uploadResData)
       if (!uploadRes.ok) throw new Error('อัปโหลดไฟล์ไม่สำเร็จ')
+    }
+
+    // Log the add stock history for new item creation (only if stockqnt > 0)
+    if (item.value.stockqnt > 0) {
+      try {
+        if (!newItemId) {
+          throw new Error('Cannot log inventory: item ID is missing')
+        }
+        
+        const logData = {
+          data: {
+            type: "add",
+            quantityChanged: item.value.stockqnt,
+            item: newItemId
+          }
+        }
+        const logRes = await fetch(`${API_BASE_URL}/api/inventory-logs/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${API_BEARER_TOKEN}`
+          },
+          body: JSON.stringify(logData)
+        })
+        const logResData = await logRes.clone().json().catch(() => null)
+        if (!logRes.ok) {
+          // Silently handle logging failure
+        }
+      } catch (logError) {
+        // Silently handle logging failure
+      }
     }
 
     success.value = 'เพิ่มวัสดุใหม่สำเร็จ!'
