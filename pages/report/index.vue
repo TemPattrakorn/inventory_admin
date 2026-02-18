@@ -124,7 +124,7 @@
             <thead>
               <tr>
                 <th class="sticky-column item-column" rowspan="2">รายการ</th>
-                <th v-for="month in monthColumns" :key="month.key" class="month-header" colspan="2">
+                <th v-for="month in monthColumns" :key="month.key" class="month-header" colspan="3">
                   {{ month.label }}
                 </th>
                 <th class="summary-header" rowspan="2">รวมเบิก</th>
@@ -134,6 +134,7 @@
                 <template v-for="month in monthColumns" :key="month.key">
                   <th class="sub-header add-header">จำนวนที่เพิ่ม</th>
                   <th class="sub-header req-header">จำนวนที่เบิก</th>
+                  <th class="sub-header diff-header">ผลต่าง</th>
                 </template>
               </tr>
             </thead>
@@ -141,7 +142,7 @@
               <template v-for="categoryData in reportData" :key="categoryData.category">
                 <!-- Category Header -->
                 <tr class="category-row">
-                  <td class="sticky-column category-cell" :colspan="(monthColumns.length * 2) + 3">
+                  <td class="sticky-column category-cell" :colspan="(monthColumns.length * 3) + 3">
                     {{ categoryData.category || 'ไม่ระบุหมวดหมู่' }}
                   </td>
                 </tr>
@@ -167,6 +168,9 @@
                     </td>
                     <td class="data-cell acquisition-cell">
                       {{ item.monthlyData[month.key]?.acquisition || 0 }}
+                    </td>
+                    <td class="data-cell difference-cell">
+                      {{ (item.monthlyData[month.key]?.addition || 0) - (item.monthlyData[month.key]?.acquisition || 0) }}
                     </td>
                   </template>
                   <td class="data-cell summary-cell">
@@ -261,14 +265,16 @@ const monthColumns = computed(() => {
     const month = current.getMonth() + 1
     const monthData = monthOptions.value.find(m => m.value === month)
     
-    let label = `${monthData.longLabel} ${new Intl.DateTimeFormat('th-TH-u-ca-buddhist', { year: 'numeric' }).format(new Date(year, 0, 1))}`
+    const yearFormatted = new Intl.DateTimeFormat('th-TH-u-ca-buddhist', { year: 'numeric' }).format(new Date(year, 0, 1))
+    const yearOnly = yearFormatted.replace('พ.ศ. ', '')
+    let label = `${monthData.longLabel} ${yearOnly}`
     let columnStart = new Date(current)
     let columnEnd = new Date(year, month - 1 + 1, 0) // Last day of current month
     
     // Check if this is the first month and doesn't start on the 1st
     if (current.getTime() === new Date(start.getFullYear(), start.getMonth(), 1).getTime() && !isFirstDayOfMonth(start)) {
       columnStart = new Date(start)
-      label = `${start.getDate()} ${monthData.longLabel} ${new Intl.DateTimeFormat('th-TH-u-ca-buddhist', { year: 'numeric' }).format(new Date(year, 0, 1))}`
+      label = `${start.getDate()} ${monthData.longLabel} ${yearOnly}`
     }
     
     // Check if this is the last month and doesn't end on the last day
@@ -276,10 +282,10 @@ const monthColumns = computed(() => {
       columnEnd = new Date(end)
       if (current.getTime() === new Date(start.getFullYear(), start.getMonth(), 1).getTime() && !isFirstDayOfMonth(start)) {
         // Both partial start and end in same month
-        label = `${start.getDate()}-${end.getDate()} ${monthData.longLabel} ${new Intl.DateTimeFormat('th-TH-u-ca-buddhist', { year: 'numeric' }).format(new Date(year, 0, 1))}`
+        label = `${start.getDate()}-${end.getDate()} ${monthData.longLabel} ${yearOnly}`
       } else {
         // Just partial end
-        label = `${end.getDate()} ${monthData.longLabel} ${new Intl.DateTimeFormat('th-TH-u-ca-buddhist', { year: 'numeric' }).format(new Date(year, 0, 1))}`
+        label = `${end.getDate()} ${monthData.longLabel} ${yearOnly}`
       }
     }
     
@@ -642,15 +648,21 @@ const exportToExcel = async () => {
     // Prepare data for Excel
     const excelData = []
     
-    // Add headers
-    const headers = ['รายการ', 'หน่วย']
+    // Add headers - First row with month names spanning 3 columns each
+    const firstRow = ['รายการ', 'หน่วย']
     for (const month of monthColumns.value) {
-      headers.push(`${month.label} - จำนวนที่เพิ่ม`)
-      headers.push(`${month.label} - จำนวนที่เบิก`)
+      firstRow.push(month.label, '', '') // Month name spans 3 columns
     }
-    headers.push('รวมเบิก')
-    headers.push('คงเหลือ')
-    excelData.push(headers)
+    firstRow.push('รวมเบิก', 'คงเหลือ')
+    excelData.push(firstRow)
+    
+    // Add sub-headers - Second row with column types
+    const secondRow = ['', '']
+    for (const month of monthColumns.value) {
+      secondRow.push('จำนวนที่เพิ่ม', 'จำนวนที่เบิก', 'ผลต่าง')
+    }
+    secondRow.push('', '')
+    excelData.push(secondRow)
     
     // Add data rows
     for (const categoryData of reportData.value) {
@@ -664,6 +676,7 @@ const exportToExcel = async () => {
         for (const month of monthColumns.value) {
           row.push(item.monthlyData[month.key]?.addition || 0)
           row.push(item.monthlyData[month.key]?.acquisition || 0)
+          row.push((item.monthlyData[month.key]?.addition || 0) - (item.monthlyData[month.key]?.acquisition || 0))
         }
         
         row.push(item.totalAcquisition)
@@ -688,10 +701,35 @@ const exportToExcel = async () => {
     for (let i = 0; i < monthColumns.value.length; i++) {
       colWidths.push({ wch: 12 }) // จำนวนที่เพิ่ม columns
       colWidths.push({ wch: 12 }) // จำนวนที่เบิก columns
+      colWidths.push({ wch: 12 }) // ผลต่าง columns
     }
     colWidths.push({ wch: 12 }) // รวมเบิก
     colWidths.push({ wch: 12 }) // คงเหลือ
     ws['!cols'] = colWidths
+    
+    // Merge cells for month headers to span 3 columns each
+    const merges = []
+    let colIndex = 2 // Start after 'รายการ' and 'หน่วย' columns
+    
+    for (let i = 0; i < monthColumns.value.length; i++) {
+      merges.push({
+        s: { r: 0, c: colIndex }, // Start row 0, column colIndex
+        e: { r: 0, c: colIndex + 2 } // End row 0, column colIndex + 2
+      })
+      colIndex += 3
+    }
+    
+    // Merge 'รวมเบิก' and 'คงเหลือ' headers
+    merges.push({
+      s: { r: 0, c: colIndex }, // รวมเบิก
+      e: { r: 1, c: colIndex }
+    })
+    merges.push({
+      s: { r: 0, c: colIndex + 1 }, // คงเหลือ
+      e: { r: 1, c: colIndex + 1 }
+    })
+    
+    ws['!merges'] = merges
     
     // Add worksheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, 'รายงานการเบิกวัสดุ')
@@ -770,6 +808,11 @@ onMounted(fetchAllData)
   color: white;
 }
 
+.diff-header {
+  background-color: #2196f3;
+  color: white;
+}
+
 .summary-header {
   background-color: #ff9800;
   color: white;
@@ -816,6 +859,12 @@ onMounted(fetchAllData)
 .acquisition-cell {
   background-color: #fff3e0;
   color: #f57c00;
+}
+
+.difference-cell {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  font-weight: bold;
 }
 
 .summary-cell {
